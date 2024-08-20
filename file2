@@ -1,0 +1,169 @@
+terraform {
+  required_providers {
+    azurerm = {
+      source = "hashicorp/azurerm"
+    }
+    azapi = {
+      source  = "registry.terraform.io/azure/azapi"
+      version = "1.7.0"
+    }
+  }
+  required_version = ">=1.1.0"
+}
+
+locals {
+
+  private_endpoint_raw = [for row_id_id, inst in var.subnet_private_endpoint_data :
+    [for sub_resource in inst.subresource_names : {
+      do_update                       = inst.do_update
+      location                        = inst.location,
+      private_endpoint_name           = join("-", [inst.private_endpoint_name, sub_resource]),
+      private_connection_resource_id  = inst.private_connection_resource_id,
+      rg_name                         = inst.rg_name,
+      subnet_id                       = inst.subnet_id,
+      sub_resource                    = sub_resource
+      }
+    ]
+   ]
+  private_endpoint_map = flatten([local.private_endpoint_raw])
+
+}
+
+resource "azapi_resource" "nsg_update_agw_gateway" {
+  for_each  = { for row_id, inst in var.nsg_update_data : row_id => inst 
+                    if (var.request_type == "nsg_update_agw_gateway" && inst.nsg_provision )}
+  type      = "Microsoft.Network/networkSecurityGroups/securityRules@2023-02-01"
+  name      = "agwAllow65200-65535Inbound"
+  parent_id = (each.value).nsg_id
+
+  body = jsonencode({
+    properties = {
+      access = "Allow"
+      destinationAddressPrefix = "*"
+      destinationPortRange = "65200-65535"
+      direction = "Inbound"
+      priority = tonumber((each.value).nsg_priority)
+      protocol = "Tcp"
+      sourceAddressPrefix = "GatewayManager"
+      sourcePortRange = "*"
+    }
+  })
+}
+
+resource "azapi_resource" "nsg_update_agw_loadbalancer" {
+  for_each  = { for row_id, inst in var.nsg_update_data : row_id => inst 
+                    if (var.request_type == "nsg_update_agw_loadbalancer" && inst.nsg_provision )}
+  type      = "Microsoft.Network/networkSecurityGroups/securityRules@2023-02-01"
+  name      = "agwAllowAzureLoadBalancerInBound"
+  parent_id = (each.value).nsg_id
+
+  body = jsonencode({
+    properties = {
+      access = "Allow"
+      destinationAddressPrefix = "*"
+      destinationPortRange = "*"
+      direction = "Inbound"
+      priority = tonumber((each.value).nsg_priority)
+      protocol = "*"
+      sourceAddressPrefix = "AzureLoadBalancer"
+      sourcePortRange = "*"
+    }
+  })
+}
+
+resource "azapi_update_resource" "subnet_delegation" {
+  for_each    = { for unique_id, inst in var.subnet_delegation_data : unique_id => inst 
+                    if  inst.subnet_id != "" && 
+                        inst.subnet_id != null && 
+                        var.request_type == "subnet_delegation"}
+  type        = "Microsoft.Network/virtualNetworks/subnets@2023-02-01"
+  resource_id = each.value.subnet_id
+
+  body = jsonencode({
+    properties = {
+      delegations = [
+        {
+          name = "delegation"
+          properties = {
+            serviceName = each.value.delegation_type
+          }
+        }
+      ]
+    }
+  })
+}
+
+resource "azapi_update_resource" "subnet_remove_udr" {
+  for_each    = { for unique_id, inst in var.subnet_remove_udr_data : unique_id => inst 
+                  if ( var.request_type == "subnet_remove_udr" && inst.udr_provision) }
+  type        = "Microsoft.Network/virtualNetworks/subnets@2023-02-01"
+  name        = (each.value).subnet_name
+  parent_id   = (each.value).vnet_id
+
+  body = jsonencode({
+    properties = {
+          routeTable = null
+    }
+  })
+}
+
+resource "azapi_update_resource" "rt_toggle_gateway_route_propogation" {
+  for_each  = { for row_id, inst in var.rt_update_data : row_id => inst 
+                    if (var.request_type == "rt_toggle_gateway_route_propogation" && inst.rt_resouce_id != "") }
+  type        = "Microsoft.Network/routeTables@2023-02-01"
+  resource_id = (each.value).rt_resouce_id
+
+  body = jsonencode({
+    properties = {
+      disableBgpRoutePropagation = tobool((each.value).rt_disable_route_propogation)
+    }
+  })
+}
+
+resource "azurerm_private_endpoint" "privateEndpoint" {
+  for_each  = { for row_id, inst in local.private_endpoint_map : row_id => inst 
+                    if (var.request_type == "subnet_private_endpoint" && inst.do_update == true) }
+  #Required Arguments
+    location            = (each.value).location
+    name                = (each.value).private_endpoint_name
+    resource_group_name = (each.value).rg_name
+    subnet_id           = (each.value).subnet_id
+    private_service_connection {
+      #Required Arguments
+        is_manual_connection              = false
+        name                              = (each.value).private_endpoint_name
+      #Optional Arguments
+        private_connection_resource_alias = null
+        private_connection_resource_id    = (each.value).private_connection_resource_id
+        request_message                   = null
+        subresource_names                 = [(each.value).sub_resource]
+    }
+  #Optional Arguments
+    custom_network_interface_name = null
+    dynamic "ip_configuration" {
+      for_each = var.provision_private_endpoint_ip_configuration == true ? [] : [] #false
+      content {
+        #Required Arguments
+          member_name         = ""
+          name                = ""
+          private_ip_address  = null
+        #Optional Arguments
+          subresource_name    = null
+      }
+    }
+    lifecycle {
+      ignore_changes = [private_dns_zone_group]
+    }
+    dynamic "private_dns_zone_group" {
+      for_each = var.provision_private_dns_zone_group == true ? [] : [] #false
+      content {
+        #Required Arguments
+          name                  = ""
+          private_dns_zone_ids  = []
+      }
+    }
+}
+
+output "subnet_private_endpoint_map" {
+  value = azurerm_private_endpoint.privateEndpoint
+}
