@@ -672,3 +672,34 @@ resource "random_integer" "for_name" {
   } 
  }
 #
+
+#added 2 more NIC
+
+resource "azurerm_network_interface" "nic2" {
+  provider = azurerm.adt
+  for_each = { for row_id, inst in local.final_parms_map : row_id => inst }
+  location            = local.naming.location
+  name                = "${(each.value).nic_name}-2"
+  resource_group_name = (each.value).rg_name
+
+  ip_configuration {
+    name                          = join("-", [(each.value).vm_name, "nic2_config" ])
+    subnet_id                     = (each.value).nic_subnet_id
+    private_ip_address_allocation = "Dynamic"
+  }
+}
+
+resource "azurerm_network_interface" "nic3" {
+  provider = azurerm.adt
+  for_each = { for row_id, inst in local.final_parms_map : row_id => inst }
+  location            = local.naming.location
+  name                = "${(each.value).nic_name}-3"
+  resource_group_name = (each.value).rg_name
+
+  ip_configuration {
+    name                          = join("-", [(each.value).vm_name, "nic3_config" ])
+    subnet_id                     = (each.value).nic_subnet_id
+    private_ip_address_allocation = "Dynamic"
+  }
+}
+
