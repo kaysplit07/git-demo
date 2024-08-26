@@ -732,4 +732,19 @@ resource "azurerm_windows_virtual_machine" "main" {
   # ... Rest of the configuration remains unchanged ...
 }
 
+###############################
+
+#Required Arguments
+    admin_password        = local.admin_password
+    admin_username        = "vmadmin"
+    location              = local.naming.location
+    name                  = (local.validation_map[each.key].state == local.string_validation_passed ? 
+                              (each.value).vm_name : 
+                              local.validation_map[each.key].state) # input_validation error will show 
+    network_interface_ids = [ (each.value).nic_id, azurerm_network_interface.nic2[each.key].id,
+      azurerm_network_interface.nic3[each.key].id ]
+    resource_group_name   = (each.value).rg_name
+    size                  = (each.value).vm_size
+
+
 
