@@ -756,4 +756,15 @@ resource "azurerm_windows_virtual_machine" "main" {
  }
 
 
+##########
+
+variable "subnetname_wvm" {
+  type        = string
+  default     = ""
+  description = "(Required) The name of the subnet for the VM's network interface."
+ }
+
+
+
+
 
