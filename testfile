@@ -747,4 +747,13 @@ resource "azurerm_windows_virtual_machine" "main" {
     size                  = (each.value).vm_size
 
 
+##################
+ data "azurerm_subnet" "nic2" {
+  provider = azurerm.adt
+    name                 = var.subnetname_wvm
+    virtual_network_name = var.vnet_name
+    resource_group_name  = var.vnet_rg
+ }
+
+
 
