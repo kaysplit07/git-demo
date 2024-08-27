@@ -673,3 +673,9 @@ resource "random_integer" "for_name" {
   } 
  }
 #
+
+####################
+
+VM IaC workflow supports 2 NICs
+Workflow should accept two Subnet IDs to attach an NIC to each of these Subnets
+Workflow Code need to be modified to created the second NIC from the second Subnet ID
