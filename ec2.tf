@@ -53,7 +53,7 @@ on:
       subnetInfo:
         type: string
         required: false
-        #description: Subnet details in JSON format (e.g., '{"subnetNameWVM": "subnet1", "subnetNameWVM2": "subnet2"}')
+        description: Subnet details in JSON format 
         default: '{}'
       diskSizeGB:
         type: string
@@ -71,7 +71,6 @@ on:
         - Premium_LRS
         - Premium_ZRS
         - " "
-
 jobs:
   parse_inputs:
     runs-on: ubuntu-latest
@@ -81,7 +80,6 @@ jobs:
       run: |
         echo "subnetNameWVM=$(jq -r '.subnetNameWVM' <<< '${{ inputs.subnetInfo }}')" >> $GITHUB_ENV
         echo "subnetNameWVM2=$(jq -r '.subnetNameWVM2' <<< '${{ inputs.subnetInfo }}')" >> $GITHUB_ENV
-
   resource_group:
     if: ${{ github.event.inputs.requesttype == 'Create (with New RG)' }}
     needs: parse_inputs
@@ -98,7 +96,6 @@ jobs:
       environment: '${{ inputs.environment }}'
       location: '${{ inputs.location }}'
       purpose: '${{ inputs.purposeRG }}'
-
   windows_vm_new_rg:
     if: ${{ github.event.inputs.requesttype == 'Create (with New RG)' }}
     needs: [parse_inputs, resource_group]
@@ -118,10 +115,16 @@ jobs:
       purposeRG: '${{ inputs.purposeRG }}'
       projectou: '${{ inputs.projectou }}'
       subnetNameWVM: '${{ env.subnetNameWVM }}'
+ Check failure on line 117 in .github/workflows/Deploy_WindowsVM.yml
+
+
+GitHub Actions
+/ - Deploy Windows VM
+Invalid workflow file
+The workflow is not valid. .github/workflows/Deploy_WindowsVM.yml (Line: 117, Col: 22): Unrecognized named-value: 'env'. Located at position 1 within expression: env.subnetNameWVM .github/workflows/Deploy_WindowsVM.yml (Line: 118, Col: 23): Unrecognized named-value: 'env'. Located at position 1 within expression: env.subnetNameWVM2
       subnetNameWVM2: '${{ env.subnetNameWVM2 }}'
       diskSizeGB: '${{ inputs.diskSizeGB }}'
       diskStorageAccountType: '${{ inputs.diskStorageAccountType }}'
-
   windows_vm_existing_rg:
     if: ${{ github.event.inputs.requesttype == 'Create (with Existing RG)' }}
     needs: parse_inputs
@@ -144,7 +147,6 @@ jobs:
       subnetNameWVM2: '${{ env.subnetNameWVM2 }}'
       diskSizeGB: '${{ inputs.diskSizeGB }}'
       diskStorageAccountType: '${{ inputs.diskStorageAccountType }}'
-
   windows_vm_maintain:
     if: ${{ github.event.inputs.requesttype == 'Update (Data Disk)' || github.event.inputs.requesttype == 'Update (OS Disk)' }}
     needs: parse_inputs
