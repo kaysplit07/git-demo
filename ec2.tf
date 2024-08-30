@@ -38,10 +38,6 @@ on:
         required: true
         default: "Standard_D2s_v3"
         description: VM Size (SKU Designation)
-      vmnames:
-        type: string
-        required: true
-        description: VM Names (comma-separated if multiple VMs)
       purpose:
         type: string
         required: true
@@ -57,8 +53,8 @@ on:
       subnetInfo:
         type: string
         required: false
-        description: Subnet details in JSON format
-        default: '{}'
+        description: Subnet details (combine subnetNameWVM and subnetNameWVM2) in JSON format
+        default: '{"subnetNameWVM": "", "subnetNameWVM2": ""}'
       diskSizeGB:
         type: string
         required: false
@@ -82,11 +78,9 @@ jobs:
     - name: Parse Subnet Information
       id: parse_subnet
       run: |
-        echo "subnetNameWVM=$(jq -r '.subnetNameWVM' <<< '${{ inputs.subnetInfo }}')" >> $GITHUB_ENV
-        echo "subnetNameWVM2=$(jq -r '.subnetNameWVM2' <<< '${{ inputs.subnetInfo }}')" >> $GITHUB_ENV
-        echo "::set-output name=subnetNameWVM::$(jq -r '.subnetNameWVM' <<< '${{ inputs.subnetInfo }}')"
-        echo "::set-output name=subnetNameWVM2::$(jq -r '.subnetNameWVM2' <<< '${{ inputs.subnetInfo }}')"
-        echo "::set-output name=vmnames::${{ inputs.vmnames }}"
+        subnetNameWVM=$(jq -r '.subnetNameWVM' <<< '${{ inputs.subnetInfo }}')
+        subnetNameWVM2=$(jq -r '.subnetNameWVM2' <<< '${{ inputs.subnetInfo }}')
+        echo "::set-output name=subnetNames::subnetNameWVM=${subnetNameWVM},subnetNameWVM2=${subnetNameWVM2}"
   resource_group:
     if: ${{ github.event.inputs.requesttype == 'Create (with New RG)' }}
     needs: parse_inputs
@@ -118,12 +112,10 @@ jobs:
       environment: '${{ inputs.environment }}'
       location: '${{ inputs.location }}'
       vmsize: '${{ inputs.vmsize }}'
-      vmnames: '${{ needs.parse_inputs.outputs.vmnames }}'
       purpose: '${{ inputs.purpose }}'
       purposeRG: '${{ inputs.purposeRG }}'
       projectou: '${{ inputs.projectou }}'
-      subnetNameWVM: '${{ needs.parse_inputs.outputs.subnetNameWVM }}'
-      subnetNameWVM2: '${{ needs.parse_inputs.outputs.subnetNameWVM2 }}'
+      subnetNames: '${{ needs.parse_inputs.outputs.subnetNames }}'
       diskSizeGB: '${{ inputs.diskSizeGB }}'
       diskStorageAccountType: '${{ inputs.diskStorageAccountType }}'
   windows_vm_existing_rg:
@@ -141,12 +133,10 @@ jobs:
       environment: '${{ inputs.environment }}'
       location: '${{ inputs.location }}'
       vmsize: '${{ inputs.vmsize }}'
-      vmnames: '${{ needs.parse_inputs.outputs.vmnames }}'
       purpose: '${{ inputs.purpose }}'
       purposeRG: '${{ inputs.purposeRG }}'
       projectou: '${{ inputs.projectou }}'
-      subnetNameWVM: '${{ needs.parse_inputs.outputs.subnetNameWVM }}'
-      subnetNameWVM2: '${{ needs.parse_inputs.outputs.subnetNameWVM2 }}'
+      subnetNames: '${{ needs.parse_inputs.outputs.subnetNames }}'
       diskSizeGB: '${{ inputs.diskSizeGB }}'
       diskStorageAccountType: '${{ inputs.diskStorageAccountType }}'
   windows_vm_maintain:
@@ -164,7 +154,6 @@ jobs:
       environment: '${{ inputs.environment }}'
       location: '${{ inputs.location }}'
       vmsize: '${{ inputs.vmsize }}'
-      vmnames: '${{ needs.parse_inputs.outputs.vmnames }}'
       purpose: '${{ inputs.purpose }}'
       purposeRG: '${{ inputs.purposeRG }}'
       diskSizeGB: '${{ inputs.diskSizeGB }}'
