@@ -38,6 +38,10 @@ on:
         required: true
         default: "Standard_D2s_v3"
         description: VM Size (SKU Designation)
+      vmnames:
+        type: string
+        required: true
+        description: VM Names (comma-separated if multiple VMs)
       purpose:
         type: string
         required: true
@@ -53,7 +57,7 @@ on:
       subnetInfo:
         type: string
         required: false
-        description: Subnet details in JSON format 
+        description: Subnet details in JSON format
         default: '{}'
       diskSizeGB:
         type: string
@@ -80,6 +84,9 @@ jobs:
       run: |
         echo "subnetNameWVM=$(jq -r '.subnetNameWVM' <<< '${{ inputs.subnetInfo }}')" >> $GITHUB_ENV
         echo "subnetNameWVM2=$(jq -r '.subnetNameWVM2' <<< '${{ inputs.subnetInfo }}')" >> $GITHUB_ENV
+        echo "::set-output name=subnetNameWVM::$(jq -r '.subnetNameWVM' <<< '${{ inputs.subnetInfo }}')"
+        echo "::set-output name=subnetNameWVM2::$(jq -r '.subnetNameWVM2' <<< '${{ inputs.subnetInfo }}')"
+        echo "::set-output name=vmnames::${{ inputs.vmnames }}"
   resource_group:
     if: ${{ github.event.inputs.requesttype == 'Create (with New RG)' }}
     needs: parse_inputs
@@ -111,18 +118,12 @@ jobs:
       environment: '${{ inputs.environment }}'
       location: '${{ inputs.location }}'
       vmsize: '${{ inputs.vmsize }}'
+      vmnames: '${{ needs.parse_inputs.outputs.vmnames }}'
       purpose: '${{ inputs.purpose }}'
       purposeRG: '${{ inputs.purposeRG }}'
       projectou: '${{ inputs.projectou }}'
-      subnetNameWVM: '${{ env.subnetNameWVM }}'
- Check failure on line 117 in .github/workflows/Deploy_WindowsVM.yml
-
-
-GitHub Actions
-/ - Deploy Windows VM
-Invalid workflow file
-The workflow is not valid. .github/workflows/Deploy_WindowsVM.yml (Line: 117, Col: 22): Unrecognized named-value: 'env'. Located at position 1 within expression: env.subnetNameWVM .github/workflows/Deploy_WindowsVM.yml (Line: 118, Col: 23): Unrecognized named-value: 'env'. Located at position 1 within expression: env.subnetNameWVM2
-      subnetNameWVM2: '${{ env.subnetNameWVM2 }}'
+      subnetNameWVM: '${{ needs.parse_inputs.outputs.subnetNameWVM }}'
+      subnetNameWVM2: '${{ needs.parse_inputs.outputs.subnetNameWVM2 }}'
       diskSizeGB: '${{ inputs.diskSizeGB }}'
       diskStorageAccountType: '${{ inputs.diskStorageAccountType }}'
   windows_vm_existing_rg:
@@ -140,11 +141,12 @@ The workflow is not valid. .github/workflows/Deploy_WindowsVM.yml (Line: 117, Co
       environment: '${{ inputs.environment }}'
       location: '${{ inputs.location }}'
       vmsize: '${{ inputs.vmsize }}'
+      vmnames: '${{ needs.parse_inputs.outputs.vmnames }}'
       purpose: '${{ inputs.purpose }}'
       purposeRG: '${{ inputs.purposeRG }}'
       projectou: '${{ inputs.projectou }}'
-      subnetNameWVM: '${{ env.subnetNameWVM }}'
-      subnetNameWVM2: '${{ env.subnetNameWVM2 }}'
+      subnetNameWVM: '${{ needs.parse_inputs.outputs.subnetNameWVM }}'
+      subnetNameWVM2: '${{ needs.parse_inputs.outputs.subnetNameWVM2 }}'
       diskSizeGB: '${{ inputs.diskSizeGB }}'
       diskStorageAccountType: '${{ inputs.diskStorageAccountType }}'
   windows_vm_maintain:
@@ -162,6 +164,7 @@ The workflow is not valid. .github/workflows/Deploy_WindowsVM.yml (Line: 117, Co
       environment: '${{ inputs.environment }}'
       location: '${{ inputs.location }}'
       vmsize: '${{ inputs.vmsize }}'
+      vmnames: '${{ needs.parse_inputs.outputs.vmnames }}'
       purpose: '${{ inputs.purpose }}'
       purposeRG: '${{ inputs.purposeRG }}'
       diskSizeGB: '${{ inputs.diskSizeGB }}'
