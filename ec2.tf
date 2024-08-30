@@ -141,7 +141,6 @@ locals {
       "purpose_rg"                      = lower(var.purpose_rg),
       "project_ou"                      = var.project_ou,
       "subnetname_wvm"                  = var.subnetname_wvm,
-      "subnetname_wvm2"                  = var.subnetname_wvm2,
       "disk_size_gb"                    = var.disk_size_gb,
       "disk_storage_account_type"       = var.disk_storage_account_type,
       #
@@ -339,12 +338,6 @@ locals {
                                               inst.subnetname_wvm),
                                             local.variables_row.subnetname_wvm
                                           )
-        subnetname_wvm2                  = try(
-                                            (inst.subnetname_wvm2 == "" ? 
-                                              local.variables_row.subnetname_wvm2 : 
-                                              inst.subnetname_wvm2),
-                                            local.variables_row.subnetname_wvm2
-                                          )
         timezone                        = try(
                                             (inst.timezone == "" ? 
                                               local.variables_row.timezone : 
@@ -416,8 +409,7 @@ locals {
   module_dependent2_map = { 
     for row_id, inst in local.module_dependent1_map :
       row_id => {
-        nic_name_1           = join("-", [inst.vm_name, "nic-1"]) 
-        nic_name_2           = join("-", [inst.vm_name, "nic-2"])
+        nic_name            = join("-", [ inst.vm_name, "nic" ])
         virtual_machine_id  = join("/", [ local.naming.subscription_id,
                                   "resourceGroups",
                                   local.common_simple_map[row_id].rg_name,
@@ -430,22 +422,13 @@ locals {
   module_dependent3_map = { 
     for row_id, inst in local.module_dependent2_map :
       row_id => {
-        nic_id_1       = join("/", [
-                      local.naming.subscription_id,
-                      "resourceGroups",
-                      local.common_simple_map[row_id].rg_name,
-                      "providers",
-                      "Microsoft.Network/networkInterfaces",
-                      inst.nic_name_1
-                    ])
-        nic_id_2       = join("/", [
-                      local.naming.subscription_id,
-                      "resourceGroups",
-                      local.common_simple_map[row_id].rg_name,
-                      "providers",
-                      "Microsoft.Network/networkInterfaces",
-                      inst.nic_name_2
-                    ])
+        nic_id    = join("/", [ local.naming.subscription_id,
+                                "resourceGroups",
+                                local.common_simple_map[row_id].rg_name,
+                                "providers",
+                                "Microsoft.Network/networkInterfaces",
+                                inst.nic_name
+                                ])
     }
    }
   step_3_map = {
@@ -458,47 +441,26 @@ locals {
    }
   #
   subnet_nic_map = {
-  for row_id, inst in data.azurerm_subnet.nic1 : row_id => {  
-    nic_subnet_id_1      = inst.id
-    nic_subnet_nsg_id_1  = inst.network_security_group_id
-    nic_subnet_rt_id_1   = inst.route_table_id
-    nic_subnet_prefix_1  = inst.address_prefixes[0]
-    nic_subnet_start_1   = split("/", inst.address_prefixes[0])[0]
-    nic_subnet_cidr_1    = split("/", inst.address_prefixes[0])[1]
-  }
-}
-
-subnet_nic2_map = {
-  for row_id, inst in data.azurerm_subnet.nic2 : row_id => {  
-    nic_subnet_id_2      = inst.id
-    nic_subnet_nsg_id_2  = inst.network_security_group_id
-    nic_subnet_rt_id_2   = inst.route_table_id
-    nic_subnet_prefix_2  = inst.address_prefixes[0]
-    nic_subnet_start_2   = split("/", inst.address_prefixes[0])[0]
-    nic_subnet_cidr_2    = split("/", inst.address_prefixes[0])[1]
-  }
-}
+    for row_id, inst in data.azurerm_subnet.nic : row_id => {
+      nic_subnet_id      = inst.id
+      nic_subnet_nsg_id  = inst.network_security_group_id
+      nic_subnet_rt_id   = inst.route_table_id
+      nic_subnet_prefix  = inst.address_prefixes[0]
+      nic_subnet_start   = split("/", inst.address_prefixes[0])[0]
+      nic_subnet_cidr    = split("/", inst.address_prefixes[0])[1]
+    }
+   }
   feature_map = {
-  for row_id, inst in data.azurerm_subnet.nic1 : row_id => {
-    
-  }
-}
+    for row_id, inst in data.azurerm_subnet.nic : row_id => {
 
-  feature_map_2 = {
-  for row_id, inst in data.azurerm_subnet.nic2 : row_id => {
-   
-  }
-}
+    }
+   }
   final_parms_map = {
-  for row_id, inst in local.step_3_map :
-  row_id => merge(
-    local.step_3_map[row_id],
-    local.subnet_nic_map[row_id],
-    local.subnet_nic2_map[row_id],
-    local.feature_map[row_id],
-    local.feature_map_2[row_id]
-  )
-}
+    for row_id, inst in local.step_3_map :
+      row_id => merge(local.step_3_map[row_id],
+                      local.subnet_nic_map[row_id],
+                      local.feature_map[row_id])
+   }
   #
   validation_map = {
     for row_id, inst in local.final_parms_map :
@@ -527,20 +489,13 @@ data "azurerm_storage_account" "hub_us" {
 data "azurerm_subscription" "current" {
   provider = azurerm.adt
  }
-data "azurerm_subnet" "nic1" {
+data "azurerm_subnet" "nic" {
   provider = azurerm.adt
   for_each = { for row_id, inst in local.step_3_map : row_id => inst }
     name                 = (each.value).subnetname_wvm
     virtual_network_name = (each.value).vnet_name
     resource_group_name  = (each.value).vnet_rg
  }
-data "azurerm_subnet" "nic2" {
-  provider = azurerm.adt
-  for_each = { for row_id, inst in local.step_3_map : row_id => inst }
-  name                 = (each.value).subnetname_wvm2  
-  virtual_network_name = (each.value).vnet_name
-  resource_group_name  = (each.value).vnet_rg
-}
 #
 module "availability_set_main" {
   providers                       = { azurerm.adt = azurerm.adt }
@@ -572,33 +527,19 @@ module "managed_data_disk" {
   }]
  }
 #
-resource "azurerm_network_interface" "nic1" {
+resource "azurerm_network_interface" "nic" {
   provider = azurerm.adt
   for_each = { for row_id, inst in local.final_parms_map : row_id => inst }
   location            = local.naming.location
-  name                = join("-", [(each.value).nic_name, "1" ])
+  name                = (each.value).nic_name
   resource_group_name = (each.value).rg_name
 
   ip_configuration {
-    name                          = join("-", [(each.value).vm_name, "nic1_config" ])
-    subnet_id                     = data.azurerm_subnet.nic1[each.key].id 
+    name                          = join("-", [(each.value).vm_name, "nic_config" ])
+    subnet_id                     = (each.value).nic_subnet_id
     private_ip_address_allocation = "Dynamic"
   }
-}
-#
-resource "azurerm_network_interface" "nic2" {
-  provider = azurerm.adt
-  for_each = { for row_id, inst in local.final_parms_map : row_id => inst }
-  location            = local.naming.location
-  name                = join("-", [(each.value).nic_name, "2" ])
-  resource_group_name = (each.value).rg_name
-
-  ip_configuration {
-    name                          = join("-", [(each.value).vm_name, "nic2_config" ])
-    subnet_id                     = data.azurerm_subnet.nic2[each.key].id  
-    private_ip_address_allocation = "Dynamic"
-  }
-}
+ }
 resource "azurerm_virtual_machine_extension" "custom_extensions" {
   provider = azurerm.adt
   for_each = { for row_id, inst in local.final_parms_map : row_id => inst 
@@ -665,10 +606,9 @@ resource "azurerm_virtual_machine_extension" "domain_join" {
 resource "azurerm_windows_virtual_machine" "main" {
   provider = azurerm.adt
   for_each = { for row_id, inst in local.final_parms_map : row_id => inst }
-  depends_on = [
+  depends_on = [ 
     module.availability_set_main,
-    azurerm_network_interface.nic1,
-    azurerm_network_interface.nic2
+    azurerm_network_interface.nic
   ]
   #Required Arguments
     admin_password        = local.admin_password
@@ -677,9 +617,10 @@ resource "azurerm_windows_virtual_machine" "main" {
     name                  = (local.validation_map[each.key].state == local.string_validation_passed ? 
                               (each.value).vm_name : 
                               local.validation_map[each.key].state) # input_validation error will show 
-    network_interface_ids = [ (each.value).nic_id_1,(each.value).nic_id_2 ]
+    network_interface_ids = [ (each.value).nic_id ]
     resource_group_name   = (each.value).rg_name
     size                  = (each.value).vm_size
+
   #Optional Arguments
     availability_set_id         = module.availability_set_main.availability_set_id[each.key]
     enable_automatic_updates    = (each.value).enable_automatic_updates
