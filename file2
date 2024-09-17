@@ -1,4 +1,26 @@
-$users = Get-ChildItem C:\Users|Where-Object{$_.name -notlike '*Default*' -and $_.name -notlike '*PUblic*'}
-foreach ($user in $users){
-Remove-Item "$($user.fullname)\AppData\Local\Google\Chrome" -Force -Recurse
-   }
+# Check if Chrome is installed for the current user
+$userChromePath = "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe"
+
+# Check if Chrome is installed for all users
+$allUsersChromePath = "$env:ProgramFiles\Google\Chrome\Application\chrome.exe"
+
+# Check if Chrome is installed in the 32-bit Program Files on a 64-bit machine
+$allUsersChromePathX86 = "$env:ProgramFiles(x86)\Google\Chrome\Application\chrome.exe"
+
+# Function to check if Chrome exists at a given path
+function Find-ChromePath {
+    param (
+        [string]$chromePath
+    )
+
+    if (Test-Path $chromePath) {
+        Write-Output "Google Chrome found at: $chromePath"
+    } else {
+        Write-Output "Google Chrome not found at: $chromePath"
+    }
+}
+
+# Check the user and system-level paths
+Find-ChromePath $userChromePath
+Find-ChromePath $allUsersChromePath
+Find-ChromePath $allUsersChromePathX86
