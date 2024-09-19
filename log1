@@ -1,7 +1,167 @@
-Perf
-| where ObjectName == "LogicalDisk"
-| where CounterName == "% Free Space"
-| where InstanceName contains ":"  // Ensures we're checking valid disk drives
-| summarize avg(CounterValue) by Computer, InstanceName, bin(TimeGenerated, 1h)
-| where avg_CounterValue < 10  // Alert if free space is less than 10%
-| project TimeGenerated, Computer, InstanceName, avg_CounterValue
+Kubernetes Manifest
+A Kubernetes manifest file is a YAML (or JSON) file that defines the desired state of an application or a cluster in terms of Kubernetes objects. Each manifest file contains several key sections that define the type of object being created and its configuration.
+Let’s break down the components of a Kubernetes manifest file and explain how Kubernetes objects are defined within it:
+Key Components of a Kubernetes Manifest
+1.	apiVersion
+o	This field specifies the API version of the Kubernetes object. It tells Kubernetes which API version to use to create or manage the object.
+o	Example: apiVersion: v1 or apiVersion: apps/v1
+Each object type can have different versions based on the Kubernetes version you are using (e.g., v1, apps/v1, batch/v1).
+2.	kind
+o	This field specifies the type of Kubernetes object you are creating. Common kinds include Pod, Deployment, Service, ConfigMap, etc.
+o	Example: kind: Pod or kind: Deployment
+This tells Kubernetes what kind of resource it should create based on the configuration.
+3.	metadata
+o	This section provides metadata for the Kubernetes object, including its name, namespace, labels, and annotations.
+o	Example:
+yaml
+Copy code
+metadata:
+  name: my-deployment
+  labels:
+    app: my-app
+  namespace: my-namespace
+4.	Key fields:
+o	name: Name of the object.
+o	namespace: Namespace where the object should be created (if not specified, the default namespace is used).
+o	labels: Key-value pairs to categorize objects.
+o	annotations: Metadata for external tools (e.g., version info, last deployment timestamp).
+5.	spec
+o	The spec (short for specification) section defines the desired state of the object. This is the most critical part of the manifest file as it tells Kubernetes what to create and how the resource should behave.
+o	The structure of the spec field differs based on the object type (e.g., Pod, Deployment, Service).
+Example spec for a Deployment:
+yaml
+Copy code
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: my-container
+        image: nginx:1.14.2
+The spec field for different objects may include:
+o	Pods: Container configuration (image, ports, environment variables, etc.).
+o	Deployments: Number of replicas, Pod templates, update strategy, etc.
+o	Services: Type (ClusterIP, NodePort, LoadBalancer), target port, selector for Pods.
+o	PersistentVolumeClaims: Storage requests, access modes.
+________________________________________
+Examples of Kubernetes Manifest Files
+1. Pod Manifest
+A Pod is the basic Kubernetes object that runs one or more containers.
+yaml
+Copy code
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx:1.14.2
+    ports:
+    - containerPort: 80
+•	apiVersion: v1 (this is the core API version for basic Kubernetes objects).
+•	kind: Pod (this defines that we are creating a Pod object).
+•	metadata: Provides the Pod’s name, my-pod.
+•	spec: Defines the container (image: nginx, port: 80).
+2. Deployment Manifest
+A Deployment is a higher-level object used to manage Pods and ensure the desired number of Pods are running.
+yaml
+Copy code
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: my-container
+        image: nginx:1.14.2
+        ports:
+        - containerPort: 80
+•	apiVersion: apps/v1 (Deployment is part of the apps API group).
+•	kind: Deployment (defines a Deployment object).
+•	metadata: The name of the Deployment is my-deployment.
+•	spec:
+o	replicas: We want 3 replicas (Pods).
+o	selector: Matches Pods with the label app: my-app.
+o	template: Defines the Pod template that will be created (in this case, a Pod running the nginx container).
+3. Service Manifest
+A Service exposes a set of Pods as a network service.
+yaml
+Copy code
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  selector:
+    app: my-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: ClusterIP
+•	apiVersion: v1
+•	kind: Service
+•	metadata: The service is named my-service.
+•	spec:
+o	selector: Routes traffic to Pods with the label app: my-app.
+o	ports: Exposes the Service on port 80 and forwards traffic to the Pods on port 8080.
+o	type: ClusterIP, meaning the service is only accessible within the cluster.
+4. ConfigMap Manifest
+A ConfigMap stores configuration data for Pods.
+yaml
+Copy code
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-config
+data:
+  configKey: configValue
+  anotherKey: anotherValue
+•	apiVersion: v1
+•	kind: ConfigMap
+•	metadata: The ConfigMap is named my-config.
+•	data: Contains key-value pairs (configKey: configValue, etc.).
+5. PersistentVolumeClaim (PVC) Manifest
+A PersistentVolumeClaim requests storage from a PersistentVolume.
+yaml
+Copy code
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+•	apiVersion: v1
+•	kind: PersistentVolumeClaim
+•	metadata: The PVC is named my-pvc.
+•	spec:
+o	accessModes: ReadWriteOnce means the volume can be mounted as read-write by a single node.
+o	resources.requests: Requests 1Gi of storage.
+________________________________________
+Summary of Key Kubernetes Objects and Manifest Sections:
+Field	Description
+apiVersion	Defines the API version for the object.
+kind	Specifies the type of object (e.g., Pod, Service, etc.).
+metadata	Metadata for the object (name, namespace, labels, etc.).
+spec	Defines the desired state for the object.
+
