@@ -1,1 +1,233 @@
-https://meet.google.com/qjf-wxtj-kwt
+Kubernetes Objects
+Kubernetes objects are persistent entities in the Kubernetes system. They represent the state of your cluster, such as what containerized applications are running and the resources available to those applications. Kubernetes objects can be thought of as "records" in the cluster that define the desired state of your application or system.
+Below are the core Kubernetes objects and their descriptions:
+
+1. Pod
+•	A Pod is the smallest and simplest Kubernetes object.
+•	It represents a single instance of a running process in your cluster.
+•	A pod can contain one or more containers (usually one), and these containers share storage, network, and configuration.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod
+spec:
+  containers:
+  - name: my-container
+    image: nginx
+
+2. Service
+•	A Service defines a logical set of Pods and a policy by which to access them, often used for load balancing.
+•	Services enable Pods to communicate with each other or expose them to the outside world.
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  selector:
+    app: my-app
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+
+3. Deployment
+•	A Deployment provides declarative updates for Pods and ReplicaSets.
+•	It defines how many instances of a pod should run and ensures that the desired number of pods are running at all times.
+yaml
+Copy code
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.14.2
+4. ReplicaSet
+•	A ReplicaSet ensures that a specified number of Pod replicas are running at any given time.
+•	It is typically used by Deployments to maintain the number of Pods.
+yaml
+Copy code
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: my-replicaset
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.14.2
+5. DaemonSet
+•	A DaemonSet ensures that a copy of a Pod is running on all (or some) nodes in the cluster.
+•	Commonly used for cluster-wide services like logging or monitoring.
+yaml
+Copy code
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: my-daemonset
+spec:
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: my-container
+        image: nginx
+6. StatefulSet
+•	A StatefulSet is used for applications that require unique, persistent identities and stable storage, such as databases.
+•	Pods in a StatefulSet are created and deleted in a strict order.
+yaml
+Copy code
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: my-statefulset
+spec:
+  serviceName: "my-service"
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: my-container
+        image: nginx
+7. Job
+•	A Job is used for running a task or process to completion.
+•	Once a Job finishes successfully, no new Pods are created.
+yaml
+Copy code
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: my-job
+spec:
+  template:
+    spec:
+      containers:
+      - name: my-container
+        image: busybox
+        command: ["echo", "Hello Kubernetes!"]
+      restartPolicy: Never
+8. CronJob
+•	A CronJob is like a Job but it runs at specified intervals, similar to a Unix cron job.
+•	It is useful for scheduled tasks like backups, report generation, etc.
+yaml
+Copy code
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: my-cronjob
+spec:
+  schedule: "*/5 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: my-container
+            image: busybox
+            command: ["echo", "Hello Kubernetes!"]
+          restartPolicy: OnFailure
+9. ConfigMap
+•	A ConfigMap is used to store configuration data that can be consumed by Pods.
+•	It decouples environment-specific configuration from container images.
+yaml
+Copy code
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-configmap
+data:
+  my-key: my-value
+10. Secret
+•	A Secret stores sensitive data like passwords, tokens, and keys.
+•	Secrets are encoded in base64 and can be mounted into Pods.
+yaml
+Copy code
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-secret
+data:
+  password: cGFzc3dvcmQ=  # 'password' base64-encoded
+11. Ingress
+•	An Ingress is used to expose HTTP and HTTPS routes from outside the cluster to services within the cluster.
+•	It provides URL-based routing to services.
+yaml
+Copy code
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: my-ingress
+spec:
+  rules:
+  - host: example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: my-service
+            port:
+              number: 80
+12. PersistentVolume (PV)
+•	A PersistentVolume (PV) represents storage that has been provisioned for use by Pods.
+•	PVs are independent of individual Pods and can be reused.
+yaml
+Copy code
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: my-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/data"
+13. PersistentVolumeClaim (PVC)
+•	A PersistentVolumeClaim (PVC) is a request for storage by a user.
+•	It is used by Pods to claim storage from a PersistentVolume.
+yaml
+Copy code
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+
