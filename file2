@@ -1,16 +1,19 @@
-PS C:\Users\akintk\Downloads\US-6425-ACTTEAM-1883\US-6425> git push origin  ACTTEAM-1883
-warning: ----------------- SECURITY WARNING ----------------
-warning: | TLS certificate verification has been disabled! |
-warning: ---------------------------------------------------
-warning: HTTPS connections may not be secure. See https://aka.ms/gcm/tlsverify for more information.
-warning: ----------------- SECURITY WARNING ----------------
-warning: | TLS certificate verification has been disabled! |
-warning: ---------------------------------------------------
-warning: HTTPS connections may not be secure. See https://aka.ms/gcm/tlsverify for more information.
-To https://github.com/nationalgrid-uselectric/US-6425.git
- ! [rejected]          ACTTEAM-1883 -> ACTTEAM-1883 (non-fast-forward)
-error: failed to push some refs to 'https://github.com/nationalgrid-uselectric/US-6425.git'
-hint: Updates were rejected because the tip of your current branch is behind
-hint: its remote counterpart. Integrate the remote changes (e.g.
-hint: 'git pull ...') before pushing again.
-hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+our branch is ahead of 'origin/main' by 1 commit.
+  (use "git push" to publish your local commits)
+
+You have unmerged paths.
+  (fix conflicts and run "git commit")
+  (use "git merge --abort" to abort the merge)
+
+Changes to be committed:
+        modified:   .github/workflows/Createmssqlserver.yml
+        modified:   .github/workflows/Deploy_WindowsVM.yml
+        modified:   .github/workflows/WindowsVMCreate.yml
+        modified:   .github/workflows/add-subnet.yml
+        modified:   Azure/parameters.csv
+        modified:   Azure/windows-vm/main.tf
+        modified:   Azure/windows-vm/variables.tf
+
+Unmerged paths:
+  (use "git add <file>..." to mark resolution)
+        both modified:   .github/workflows/mysql_server.yml
