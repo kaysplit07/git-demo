@@ -1,26 +1,16 @@
-# Check if Chrome is installed for the current user
-$userChromePath = "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe"
-
-# Check if Chrome is installed for all users
-$allUsersChromePath = "$env:ProgramFiles\Google\Chrome\Application\chrome.exe"
-
-# Check if Chrome is installed in the 32-bit Program Files on a 64-bit machine
-$allUsersChromePathX86 = "$env:ProgramFiles(x86)\Google\Chrome\Application\chrome.exe"
-
-# Function to check if Chrome exists at a given path
-function Find-ChromePath {
-    param (
-        [string]$chromePath
-    )
-
-    if (Test-Path $chromePath) {
-        Write-Output "Google Chrome found at: $chromePath"
-    } else {
-        Write-Output "Google Chrome not found at: $chromePath"
-    }
-}
-
-# Check the user and system-level paths
-Find-ChromePath $userChromePath
-Find-ChromePath $allUsersChromePath
-Find-ChromePath $allUsersChromePathX86
+PS C:\Users\akintk\Downloads\US-6425-ACTTEAM-1883\US-6425> git push origin  ACTTEAM-1883
+warning: ----------------- SECURITY WARNING ----------------
+warning: | TLS certificate verification has been disabled! |
+warning: ---------------------------------------------------
+warning: HTTPS connections may not be secure. See https://aka.ms/gcm/tlsverify for more information.
+warning: ----------------- SECURITY WARNING ----------------
+warning: | TLS certificate verification has been disabled! |
+warning: ---------------------------------------------------
+warning: HTTPS connections may not be secure. See https://aka.ms/gcm/tlsverify for more information.
+To https://github.com/nationalgrid-uselectric/US-6425.git
+ ! [rejected]          ACTTEAM-1883 -> ACTTEAM-1883 (non-fast-forward)
+error: failed to push some refs to 'https://github.com/nationalgrid-uselectric/US-6425.git'
+hint: Updates were rejected because the tip of your current branch is behind
+hint: its remote counterpart. Integrate the remote changes (e.g.
+hint: 'git pull ...') before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
