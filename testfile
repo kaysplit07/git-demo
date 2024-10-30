@@ -1,6 +1,9 @@
-│ Error: Unsupported argument
-│ 
-│   on main.tf line 134, in resource "azurerm_lb_probe" "tcp_probe":
-│  134:   resource_group_name = azurerm_lb.internal_lb[each.key].resource_group_name
-│ 
-│ An argument named "resource_group_name" is not expected here.
+resource "azurerm_lb_probe" "tcp_probe" {
+  for_each            = azurerm_lb.internal_lb
+  name                = "internal-${local.purposeRG}-server-tcp-probe"
+  loadbalancer_id     = azurerm_lb.internal_lb[each.key].id
+  protocol            = "Tcp"
+  port                = 20000
+  interval_in_seconds = 10
+  number_of_probes    = 5
+}
