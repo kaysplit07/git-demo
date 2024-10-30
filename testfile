@@ -1,140 +1,41 @@
-name: 'Create MS SQL Server'
-run-name: ${{github.actor}}
-on:
-    workflow_call:
-      inputs:
-        requestType:
-          type: choice
-          required: true
-          options:
-            - create
-            - destroy
-        name:
-          type: string
-          required: false
-        subscription:
-            type: string
-            required: true
-        location:
-          type: string
-          required: true
-        environment:
-          type: string
-          required: true
-        purpose:
-          type: string
-          required: true
-        subnetname:
-          type: string
-          required: true
-        dbcollation:
-          type: string
-          required: false
-        skuname:
-          type: string
-          required: false
-        zoneredundancy:
-          type: string
-          required: false
-      secrets:
-        ARM_CLIENT_ID:
-          required: true
-        ARM_CLIENT_SECRET:
-          required: true
-        ARM_SUBSCRIPTION_ID:
-          required: true
-        ARM_TENANT_ID:
-          required: true
-env:
- permissions:
- contents: read
-jobs:
-  mssql-server-reusable-workflow:
-    name: 'Creating - MSSQL Server'
-    env:
-        ARM_CLIENT_ID: ${{secrets.ARM_CLIENT_ID}}
-        ARM_CLIENT_SECRET: ${{secrets.ARM_CLIENT_SECRET}}
-        ARM_TENANT_ID: ${{secrets.ARM_TENANT_ID}}
-        ARM_SUBSCRIPTION_ID: ${{secrets.ARM_SUBSCRIPTION_ID}}
-        ROOT_PATH: 'Azure/${{inputs.name}}'
-    runs-on: ubuntu-latest
-    environment: ${{inputs.environment}}
-    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
-    defaults:
-      run:
-        shell: bash
+# Azure Load Balancer Resource
+resource "azurerm_lb" "internal_lb" {
+  for_each            = { for inst in local.get_data : inst.unique_id => inst }
+  name                = join("-", ["ari", local.naming.environment, local.env_location.locations_abbreviation, local.purposeRG, "lbi", random_id.randomnumber.hex])
+  location            = var.location
+  resource_group_name = data.azurerm_resource_group.rg[each.key].name
+  sku                 = (lookup(each.value,"sku_name",null) != null && lookup(each.value,"sku_name","") != "") ? each.value.sku_name : var.sku_name
 
-    steps:
-    # Checkout the repository to the GitHub Actions runner
-    - name: Checkout
-      uses: actions/checkout@v3
-    - name: Terraform Initialize
-      uses: hashicorp/terraform-github-actions@master
-      with:
-        tf_actions_version: latest
-        tf_actions_subcommand: 'init'
-        tf_actions_working_dir: ${{env.ROOT_PATH}}
-        tf_actions_comment: true
-      env:
-        TF_VAR_name: '${{inputs.name}}'
-        TF_VAR_location: '${{inputs.location}}'
-        TF_VAR_environment: '${{inputs.environment}}'
-        TF_VAR_purpose: '${{inputs.purpose}}'
-        TF_VAR_subnetname: '${{inputs.subnetname}}'
-        TF_VAR_dbcollation: '${{inputs.dbcollation}}'
-        TF_VAR_skuname: '${{inputs.skuname}}'
-        TF_VAR_zoneredundancy: '${{inputs.zoneredundancy}}'
-    - name: Terraform Plan
-      uses: hashicorp/terraform-github-actions@master
-      with:
-       tf_actions_version: latest
-       tf_actions_subcommand: 'plan'
-       tf_actions_working_dir: ${{env.ROOT_PATH}}
-       tf_actions_comment: true
-      env:
-        TF_VAR_name: '${{inputs.name}}'
-        TF_VAR_location: '${{inputs.location}}'
-        TF_VAR_environment: '${{inputs.environment}}'
-        TF_VAR_purpose: '${{inputs.purpose}}'
-        TF_VAR_subnetname: '${{inputs.subnetname}}'
-        TF_VAR_dbcollation: '${{inputs.dbcollation}}'
-        TF_VAR_skuname: '${{inputs.skuname}}'
-        TF_VAR_zoneredundancy: '${{inputs.zoneredundancy}}'
+  frontend_ip_configuration {
+    name                          = "internal-${local.purposeRG}-server-feip"
+    subnet_id                     = data.azurerm_subnet.subnet[each.key].id
+    private_ip_address            = "10.82.58.233"
+    private_ip_address_allocation = "Static"
+  }
+}
 
-     # Conditionally create or destroy resources based on requestType input
-    - name: 'Terraform Apply - Create MS SQL Server'
-      if: ${{ inputs.requestType == 'create' }}
-      uses: hashicorp/terraform-github-actions@master
-      with:
-       tf_actions_version: latest
-       tf_actions_subcommand: 'apply'
-       tf_actions_working_dir: ${{env.ROOT_PATH}}
-       tf_actions_comment: true
-      env:
-       TF_VAR_name: '${{inputs.name}}'
-       TF_VAR_location: '${{inputs.location}}'
-       TF_VAR_environment: '${{inputs.environment}}'
-       TF_VAR_purpose: '${{inputs.purpose}}'
-       TF_VAR_subnetname: '${{inputs.subnetname}}'
-       TF_VAR_dbcollation: '${{inputs.dbcollation}}'
-       TF_VAR_skuname: '${{inputs.skuname}}'
-       TF_VAR_zoneredundancy: '${{inputs.zoneredundancy}}'
+# Define Backend Address Pool separately
+resource "azurerm_lb_backend_address_pool" "internal_lb_bepool" {
+  for_each            = azurerm_lb.internal_lb
+  loadbalancer_id     = azurerm_lb.internal_lb[each.key].id
+  resource_group_name = azurerm_lb.internal_lb[each.key].resource_group_name
+  name                = "internal-${local.purposeRG}-server-bepool"
+}
 
-    - name: 'Terraform Destroy - Remove MS SQL Server'
-      if: ${{ inputs.requestType == 'destroy' }}
-      uses: hashicorp/terraform-github-actions@master
-      with:
-        tf_actions_version: latest
-        tf_actions_subcommand: 'destroy'
-        tf_actions_working_dir: ${{env.ROOT_PATH}}
-        tf_actions_comment: true
-      env:
-        TF_VAR_name: '${{inputs.name}}'
-        TF_VAR_location: '${{inputs.location}}'
-        TF_VAR_environment: '${{inputs.environment}}'
-        TF_VAR_purpose: '${{inputs.purpose}}'
-        TF_VAR_subnetname: '${{inputs.subnetname}}'
-        TF_VAR_dbcollation: '${{inputs.dbcollation}}'
-        TF_VAR_skuname: '${{inputs.skuname}}'
-        TF_VAR_zoneredundancy: '${{inputs.zoneredundancy}}' 
-    
+# Load Balancer TCP Rule
+resource "azurerm_lb_rule" "tcp_rule" {
+  for_each = azurerm_lb.internal_lb
+  name                           = "internal-${local.purposeRG}-server-tcp-lbrule"
+  resource_group_name            = azurerm_lb.internal_lb[each.key].resource_group_name
+  loadbalancer_id                = azurerm_lb.internal_lb[each.key].id
+  protocol                       = "Tcp"
+  frontend_port                  = 20000
+  backend_port                   = 20000
+  frontend_ip_configuration_name = azurerm_lb.internal_lb[each.key].frontend_ip_configuration[0].name
+  backend_address_pool_id        = azurerm_lb_backend_address_pool.internal_lb_bepool[each.key].id
+  idle_timeout_in_minutes        = 5
+  enable_floating_ip             = false
+  enable_tcp_reset               = false
+  disable_outbound_snat          = false
+  probe_id                       = azurerm_lb_probe.tcp_probe[each.key].id
+}
