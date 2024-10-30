@@ -1,9 +1,10 @@
- Error: Incorrect attribute value type
+╷
+│ Error: Invalid index
 │ 
-│   on main.tf line 45, in data "azurerm_virtual_network" "vnet":
-│   45:   resource_group_name = data.azurerm_resource_group.vnet
+│   on main.tf line 125, in resource "azurerm_lb" "internal_lb":
+│  125:     subnet_id                     = data.azurerm_subnet.subnet[each.key].id
 │     ├────────────────
-│     │ data.azurerm_resource_group.vnet is object with 6 attributes
+│     │ data.azurerm_subnet.subnet is object with 13 attributes
+│     │ each.key is "1"
 │ 
-│ Inappropriate value for attribute "resource_group_name": string required.
-╵
+│ The given key does not identify an element in this collection value.
