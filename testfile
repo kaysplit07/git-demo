@@ -1,41 +1,25 @@
-# Azure Load Balancer Resource
-resource "azurerm_lb" "internal_lb" {
-  for_each            = { for inst in local.get_data : inst.unique_id => inst }
-  name                = join("-", ["ari", local.naming.environment, local.env_location.locations_abbreviation, local.purposeRG, "lbi", random_id.randomnumber.hex])
-  location            = var.location
-  resource_group_name = data.azurerm_resource_group.rg[each.key].name
-  sku                 = (lookup(each.value,"sku_name",null) != null && lookup(each.value,"sku_name","") != "") ? each.value.sku_name : var.sku_name
 
-  frontend_ip_configuration {
-    name                          = "internal-${local.purposeRG}-server-feip"
-    subnet_id                     = data.azurerm_subnet.subnet[each.key].id
-    private_ip_address            = "10.82.58.233"
-    private_ip_address_allocation = "Static"
-  }
-}
-
-# Define Backend Address Pool separately
-resource "azurerm_lb_backend_address_pool" "internal_lb_bepool" {
-  for_each            = azurerm_lb.internal_lb
-  loadbalancer_id     = azurerm_lb.internal_lb[each.key].id
-  resource_group_name = azurerm_lb.internal_lb[each.key].resource_group_name
-  name                = "internal-${local.purposeRG}-server-bepool"
-}
-
-# Load Balancer TCP Rule
-resource "azurerm_lb_rule" "tcp_rule" {
-  for_each = azurerm_lb.internal_lb
-  name                           = "internal-${local.purposeRG}-server-tcp-lbrule"
-  resource_group_name            = azurerm_lb.internal_lb[each.key].resource_group_name
-  loadbalancer_id                = azurerm_lb.internal_lb[each.key].id
-  protocol                       = "Tcp"
-  frontend_port                  = 20000
-  backend_port                   = 20000
-  frontend_ip_configuration_name = azurerm_lb.internal_lb[each.key].frontend_ip_configuration[0].name
-  backend_address_pool_id        = azurerm_lb_backend_address_pool.internal_lb_bepool[each.key].id
-  idle_timeout_in_minutes        = 5
-  enable_floating_ip             = false
-  enable_tcp_reset               = false
-  disable_outbound_snat          = false
-  probe_id                       = azurerm_lb_probe.tcp_probe[each.key].id
-}
+│ Error: Unsupported argument
+│ 
+│   on main.tf line 126, in resource "azurerm_lb_backend_address_pool" "internal_lb_bepool":
+│  126:   resource_group_name = azurerm_lb.internal_lb[each.key].resource_group_name
+│ 
+│ An argument named "resource_group_name" is not expected here.
+╵
+╷
+│ Error: Reference to undeclared resource
+│ 
+│   on main.tf line 145, in resource "azurerm_lb_rule" "tcp_rule":
+│  145:   probe_id                       = azurerm_lb_probe.tcp_probe[each.key].id
+│ 
+│ A managed resource "azurerm_lb_probe" "tcp_probe" has not been declared in
+│ the root module.
+╵
+╷
+│ Error: Reference to undeclared resource
+│ 
+│   on main.tf line 162, in resource "azurerm_lb_rule" "https_rule":
+│  162:   probe_id                       = azurerm_lb_probe.tcp_probe[each.key].id
+│ 
+│ A managed resource "azurerm_lb_probe" "tcp_probe" has not been declared in
+│ the root module.
