@@ -1,10 +1,84 @@
+Error: parsing "azurerm_lb_backend_address_pool.internal_lb_bepool[each.key].id": parsing the LoadBalancerBackendAddressPool ID: the number of segments didn't match
+│ 
+│ Expected a LoadBalancerBackendAddressPool ID that matched (containing 10 segments):
+│ 
+│ > /subscriptions/12345678-1234-9876-4563-123456789012/resourceGroups/example-resource-group/providers/Microsoft.Network/loadBalancers/loadBalancerName/backendAddressPools/backendAddressPoolName
+│ 
+│ However this value was provided (which was parsed into 0 segments):
+│ 
+│ > azurerm_lb_backend_address_pool.internal_lb_bepool[each.key].id
+│ 
+│ The following Segments are expected:
+│ 
+│ * Segment 0 - this should be the literal value "subscriptions"
+│ * Segment 1 - this should be the UUID of the Azure Subscription
+│ * Segment 2 - this should be the literal value "resourceGroups"
+│ * Segment 3 - this should be the name of the Resource Group
+│ * Segment 4 - this should be the literal value "providers"
+│ * Segment 5 - this should be the name of the Resource Provider [for example 'Microsoft.Network']
+│ * Segment 6 - this should be the literal value "loadBalancers"
+│ * Segment 7 - this should be the user specified value for this loadBalancer [for example "loadBalancerName"]
+│ * Segment 8 - this should be the literal value "backendAddressPools"
+│ * Segment 9 - this should be the user specified value for this backendAddressPool [for example "backendAddressPoolName"]
+│ 
+│ The following Segments were parsed:
+│ 
+│ * Segment 0 - not found
+│ * Segment 1 - not found
+│ * Segment 2 - not found
+│ * Segment 3 - not found
+│ * Segment 4 - not found
+│ * Segment 5 - not found
+│ * Segment 6 - not found
+│ * Segment 7 - not found
+│ * Segment 8 - not found
+│ * Segment 9 - not found
+│ 
+│ 
+│   with azurerm_lb_rule.tcp_rule,
+│   on main.tf line 162, in resource "azurerm_lb_rule" "tcp_rule":
+│  162:   backend_address_pool_ids        = ["azurerm_lb_backend_address_pool.internal_lb_bepool[each.key].id"]
+│ 
+╵
 ╷
-│ Error: Invalid index
+│ Error: parsing "azurerm_lb.internal_lb[each.key].backend_address_pool[0].id": parsing the LoadBalancerBackendAddressPool ID: the number of segments didn't match
 │ 
-│   on main.tf line 125, in resource "azurerm_lb" "internal_lb":
-│  125:     subnet_id                     = data.azurerm_subnet.subnet[each.key].id
-│     ├────────────────
-│     │ data.azurerm_subnet.subnet is object with 13 attributes
-│     │ each.key is "1"
+│ Expected a LoadBalancerBackendAddressPool ID that matched (containing 10 segments):
 │ 
-│ The given key does not identify an element in this collection value.
+│ > /subscriptions/12345678-1234-9876-4563-123456789012/resourceGroups/example-resource-group/providers/Microsoft.Network/loadBalancers/loadBalancerName/backendAddressPools/backendAddressPoolName
+│ 
+│ However this value was provided (which was parsed into 0 segments):
+│ 
+│ > azurerm_lb.internal_lb[each.key].backend_address_pool[0].id
+│ 
+│ The following Segments are expected:
+│ 
+│ * Segment 0 - this should be the literal value "subscriptions"
+│ * Segment 1 - this should be the UUID of the Azure Subscription
+│ * Segment 2 - this should be the literal value "resourceGroups"
+│ * Segment 3 - this should be the name of the Resource Group
+│ * Segment 4 - this should be the literal value "providers"
+│ * Segment 5 - this should be the name of the Resource Provider [for example 'Microsoft.Network']
+│ * Segment 6 - this should be the literal value "loadBalancers"
+│ * Segment 7 - this should be the user specified value for this loadBalancer [for example "loadBalancerName"]
+│ * Segment 8 - this should be the literal value "backendAddressPools"
+│ * Segment 9 - this should be the user specified value for this backendAddressPool [for example "backendAddressPoolName"]
+│ 
+│ The following Segments were parsed:
+│ 
+│ * Segment 0 - not found
+│ * Segment 1 - not found
+│ * Segment 2 - not found
+│ * Segment 3 - not found
+│ * Segment 4 - not found
+│ * Segment 5 - not found
+│ * Segment 6 - not found
+│ * Segment 7 - not found
+│ * Segment 8 - not found
+│ * Segment 9 - not found
+│ 
+│ 
+│   with azurerm_lb_rule.https_rule,
+│   on main.tf line 179, in resource "azurerm_lb_rule" "https_rule":
+│  179:   backend_address_pool_ids        = ["azurerm_lb.internal_lb[each.key].backend_address_pool[0].id"]
+│ 
