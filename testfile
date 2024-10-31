@@ -1,7 +1,21 @@
-Error: expected "name" to not be an empty string, got 
+╷
+│ Error: Invalid index
 │ 
-│   with data.azurerm_subnet.subnet["0"],
-│   on main.tf line 57, in data "azurerm_subnet" "subnet":
-│   57:   name                 = (lookup(each.value, "subnet_name", null) != null && lookup(each.value, "subnet_name", "") != "") ? each.value.subnet_name : var.subnetname //lz<app>-<env>-<region>-<purpose>-snet-<nn>
+│   on main.tf line 79, in resource "azurerm_lb" "internal_lb":
+│   79:   resource_group_name = data.azurerm_resource_group.rg[each.key].name
+│     ├────────────────
+│     │ data.azurerm_resource_group.rg is object with 1 attribute "0"
+│     │ each.key is "1"
 │ 
+│ The given key does not identify an element in this collection value.
 ╵
+╷
+│ Error: Invalid index
+│ 
+│   on main.tf line 84, in resource "azurerm_lb" "internal_lb":
+│   84:     subnet_id                     = data.azurerm_subnet.subnet[each.key].id
+│     ├────────────────
+│     │ data.azurerm_subnet.subnet is object with 1 attribute "0"
+│     │ each.key is "1"
+│ 
+│ The given key does not identify an element in this collection value.
