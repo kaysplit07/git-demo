@@ -1,33 +1,137 @@
-# Load Balancer TCP Rule
-resource "azurerm_lb_rule" "tcp_rule" {
-  for_each                       = azurerm_lb.internal_lb
-  name                           = "internal-${local.purposeRG}-server-tcp-lbrule"
-  loadbalancer_id                = azurerm_lb.internal_lb[each.key].id
-  protocol                       = "Tcp"
-  frontend_port                  = 20000
-  backend_port                   = 20000
-  frontend_ip_configuration_name = azurerm_lb.internal_lb[each.key].frontend_ip_configuration[0].name
-  backend_address_pool_ids       = [azurerm_lb_backend_address_pool.internal_lb_bepool[each.key].id] # Corrected here
-  idle_timeout_in_minutes        = 5
-  enable_floating_ip             = false
-  enable_tcp_reset               = false
-  disable_outbound_snat          = false
-  probe_id                       = azurerm_lb_probe.tcp_probe[each.key].id
-}
+name: 'Deploy Load Balancer'
+run-name: 'Load Balancer - ${{inputs.environment}} purpose: ${{inputs.purpose}} : ${{inputs.requesttype}}'
+on:
+  workflow_dispatch:
+    inputs:
+      requesttype:
+        type: choice
+        required: true
+        description: Request Type
+        options:
+            - Create (with New RG)
+            - Create (with Existing RG)
+            - Remove
+          default: "Create (with New RG)"
+      environment:
+        type: choice
+        required: true
+        description: Environment
+        options:
+          - DEV
+          - UAT
+          - QA
+          - PROD
+      location:
+        type: choice
+        required: true
+        description: Deployment Location
+        options:
+          - Select the location
+          - eastus2
+          - uksouth
+          - centralus
+          - ukwest
+      sku_name:
+        type: choice
+        required: false
+        description: SKU for Load Balancer
+        options:
+          - Standard
+          - Basic
+        default: "Standard"
+      purpose:
+        type: string
+        required: true
+        description: Purpose of the Load Balancer
+      purposeRG:
+        type: string
+        required: true
+        description: Resource Group Purpose.......... Hyphen designate an existing RG
+      subnetName:
+        type: string
+        required: true
+        description: Subnet name for Load Balancer.
+      private_ip_address:
+        type: string
+        required: false
+        description: Private IP address for Load Balancer frontend configuration.
+jobs:
+  resource_group:
+    if: (github.event.inputs.requesttype == 'Create (with New RG)')
+    name: 'Resource Group ${{inputs.purposeRG}}'
+    uses: ./.github/workflows/CreateResourceGroup.yml
+    secrets:
+      ARM_CLIENT_ID:        ${{secrets.AZURE_CLIENT_ID}}
+      ARM_CLIENT_SECRET:    ${{secrets.AZURE_CLIENT_SECRET}}
+      ARM_SUBSCRIPTION_ID:  ${{secrets.AZURE_SUBSCRIPTION_ID}}
+      ARM_TENANT_ID:        ${{secrets.AZURE_TENANT_ID}}
+    with:
+      name:                 'resource-group'
+      subscription:         'SNow Input'
+      environment:          '${{inputs.environment}}' 
+      location:             '${{inputs.location}}' 
+      purpose:              '${{inputs.purposeRG}}'
+  
+  load_balancer_new_rg:
+    if: (github.event.inputs.requesttype == 'Create (with New RG)')
+    name: 'Load Balancer ${{inputs.purpose}}'
+    uses: ./.github/workflows/LBCreate.yml
+    needs: resource_group
+    secrets:
+      ARM_CLIENT_ID:        ${{secrets.AZURE_CLIENT_ID}}
+      ARM_CLIENT_SECRET:    ${{secrets.AZURE_CLIENT_SECRET}}
+      ARM_SUBSCRIPTION_ID:  ${{secrets.AZURE_SUBSCRIPTION_ID}}
+      ARM_TENANT_ID:        ${{secrets.AZURE_TENANT_ID}}
+    with:
+      requesttype:               '${{inputs.requesttype}}'
+      environment:               '${{inputs.environment}}'
+      location:                  '${{inputs.location}}'
+      sku_name:                  '${{inputs.sku_name}}'
+      purpose:                   '${{inputs.purpose}}'
+      purposeRG:                 '${{inputs.purposeRG}}'
+      subnetName:                '${{inputs.subnetName}}'
+      private_ip_address:        '${{inputs.private_ip_address}}'
+  
+  load_balancer_existing_rg:
+    if: (github.event.inputs.requesttype == 'Create (with Existing RG)')
+    name: 'Load Balancer ${{inputs.purpose}}'
+    uses: ./.github/workflows/LBCreate.yml
+    secrets:
+      ARM_CLIENT_ID:        ${{secrets.AZURE_CLIENT_ID}}
+      ARM_CLIENT_SECRET:    ${{secrets.AZURE_CLIENT_SECRET}}
+      ARM_SUBSCRIPTION_ID:  ${{secrets.AZURE_SUBSCRIPTION_ID}}
+      ARM_TENANT_ID:        ${{secrets.AZURE_TENANT_ID}}
+    with:
+      requesttype:               '${{inputs.requesttype}}'
+      environment:               '${{inputs.environment}}'
+      location:                  '${{inputs.location}}'
+      sku_name:                  '${{inputs.sku_name}}'
+      purpose:                   '${{inputs.purpose}}'
+      purposeRG:                 '${{inputs.purposeRG}}'
+      subnetName:                '${{inputs.subnetName}}'
+      private_ip_address:        '${{inputs.private_ip_address}}'
+  
+  load_balancer_remove:
+    if: (github.event.inputs.requesttype == 'Remove')
+    name: 'Maintain Load Balancer ${{inputs.purpose}}'
+    uses: ./.github/workflows/LBCreate.yml
+    secrets:
+      ARM_CLIENT_ID:        ${{secrets.AZURE_CLIENT_ID}}
+      ARM_CLIENT_SECRET:    ${{secrets.AZURE_CLIENT_SECRET}}
+      ARM_SUBSCRIPTION_ID:  ${{secrets.AZURE_SUBSCRIPTION_ID}}
+      ARM_TENANT_ID:        ${{secrets.AZURE_TENANT_ID}}
+    with:
+      requesttype:               '${{inputs.requesttype}}'
+      environment:               '${{inputs.environment}}'
+      location:                  '${{inputs.location}}'
+      sku_name:                  '${{inputs.sku_name}}'
+      purpose:                   '${{inputs.purpose}}'
+      purposeRG:                 '${{inputs.purposeRG}}'
+      subnetName:                '${{inputs.subnetName}}'
+      private_ip_address:        '${{inputs.private_ip_address}}'
 
-# Load Balancer HTTPS Rule
-resource "azurerm_lb_rule" "https_rule" {
-  for_each                       = azurerm_lb.internal_lb
-  name                           = "internal-${local.purposeRG}-server-https-lbrule"
-  loadbalancer_id                = azurerm_lb.internal_lb[each.key].id
-  protocol                       = "Tcp"
-  frontend_port                  = 443
-  backend_port                   = 443
-  frontend_ip_configuration_name = azurerm_lb.internal_lb[each.key].frontend_ip_configuration[0].name
-  backend_address_pool_ids       = [azurerm_lb_backend_address_pool.internal_lb_bepool[each.key].id] # Corrected here
-  idle_timeout_in_minutes        = 4
-  enable_floating_ip             = false
-  enable_tcp_reset               = false
-  disable_outbound_snat          = false
-  probe_id                       = azurerm_lb_probe.tcp_probe[each.key].id
-}
+
+Annotations
+1 error
+Invalid workflow file: .github/workflows/Deploy_lb.yml#L6
+You have an error in your yaml syntax on line 6
