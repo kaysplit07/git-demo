@@ -1,17 +1,2 @@
-/src/main.sh: line 121: cd: /github/workspace/Azure/load-balancer: No such file or directory
-Checking the latest version of Terraform
-Downloading Terraform v1.9.8
-Successfully downloaded Terraform v1.9.8
-Unzipping Terraform v1.9.8
-Successfully unzipped Terraform v1.9.8
-plan: info: planning Terraform configuration in Azure/load-balancer
-plan: error: failed to plan Terraform configuration in Azure/load-balancer
-╷
-│ Error: No configuration files
-│ 
-│ Plan requires configuration to be present. Planning without a configuration
-│ would mark everything for destruction, which is normally not what is
-│ desired. If you would like to destroy everything, run plan with the
-│ -destroy option. Otherwise, create a Terraform configuration file (.tf
-│ file) and try again.
-╵
+- name: Checkout repository
+  uses: actions/checkout@v2
