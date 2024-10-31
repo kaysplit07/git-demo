@@ -1,2 +1,7 @@
-- name: Checkout repository
-  uses: actions/checkout@v2
+Error: expected "name" to not be an empty string, got 
+│ 
+│   with data.azurerm_subnet.subnet["0"],
+│   on main.tf line 57, in data "azurerm_subnet" "subnet":
+│   57:   name                 = (lookup(each.value, "subnet_name", null) != null && lookup(each.value, "subnet_name", "") != "") ? each.value.subnet_name : var.subnetname //lz<app>-<env>-<region>-<purpose>-snet-<nn>
+│ 
+╵
