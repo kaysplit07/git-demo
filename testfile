@@ -1,7 +1,44 @@
-Might be late to answer this, but here goes. Once you have created LB and VM, you can use this snippet to associate NIC and LB backend pool:
+# Network Interface Resource
+resource "azurerm_network_interface" "nic1" {
+  provider             = azurerm.adt
+  for_each             = { for row_id, inst in local.final_parms_map : row_id => inst }
+  location             = local.naming.location
+  name                 = (each.value).nic_name_1
+  resource_group_name  = (each.value).rg_name
 
-resource "azurerm_network_interface_backend_address_pool_association" "vault" {
-  network_interface_id    = "${azurerm_network_interface.nic.id}"
-  ip_configuration_name   = "nic_ip_config"
-  backend_address_pool_id = "${azurerm_lb_backend_address_pool.nic.id}"
+  ip_configuration {
+    name                          = "nic_ip_config"  # Ensure this name matches below
+    subnet_id                     = data.azurerm_subnet.nic1[each.key].id
+    private_ip_address_allocation = "Dynamic"
+  }
+}
+
+# Load Balancer Backend Address Pool Association
+resource "azurerm_network_interface_backend_address_pool_association" "nic1_backend" {
+  for_each                   = { for row_id, inst in local.final_parms_map : row_id => inst }
+  network_interface_id       = azurerm_network_interface.nic1[each.key].id
+  ip_configuration_name      = "nic_ip_config"  # Same as above in the NIC
+  backend_address_pool_id    = azurerm_lb_backend_address_pool.internal_lb_bepool[each.key].id
+}
+
+# Repeat for second NIC if needed
+resource "azurerm_network_interface" "nic2" {
+  provider             = azurerm.adt
+  for_each             = { for row_id, inst in local.final_parms_map : row_id => inst }
+  location             = local.naming.location
+  name                 = (each.value).nic_name_2
+  resource_group_name  = (each.value).rg_name
+
+  ip_configuration {
+    name                          = "nic_ip_config"  # Ensure this name matches below
+    subnet_id                     = data.azurerm_subnet.nic2[each.key].id
+    private_ip_address_allocation = "Dynamic"
+  }
+}
+
+resource "azurerm_network_interface_backend_address_pool_association" "nic2_backend" {
+  for_each                   = { for row_id, inst in local.final_parms_map : row_id => inst }
+  network_interface_id       = azurerm_network_interface.nic2[each.key].id
+  ip_configuration_name      = "nic_ip_config"  # Same as above in the NIC
+  backend_address_pool_id    = azurerm_lb_backend_address_pool.internal_lb_bepool[each.key].id
 }
