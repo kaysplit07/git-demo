@@ -1,146 +1,51 @@
-provider "azurerm" {
-  features {}
+To associate the NIC and the Load Balancer backend address pool across modules, follow these updates in each relevant code block.
+
+1. Export Backend Address Pool ID in Load Balancer Module
+In the Load Balancer module, export the backend address pool ID:
+
+hcl
+Copy code
+# Inside the Load Balancer module
+output "backend_address_pool_id" {
+  value = azurerm_lb_backend_address_pool.internal_lb_bepool.id
 }
+2. Pass the Backend Pool ID to the NIC Module
+When calling the NIC module, pass the backend_address_pool_id as an input variable:
 
-terraform {
-        backend "azurerm" {
-            resource_group_name = "test-dev-eus2-testing-rg"  
-            storage_account_name = "6425dveus2aristb01" 
-            container_name = "terraform-state" 
-            key = "LoadBalancer-terraform.tfstate" 
-        }
-
-    }
-
-data "azurerm_subscription" "current" {}  # Read the current subscription info
-
-data "azurerm_client_config" "clientconfig" {}  # Read the current client config
-
-locals {
-  get_data = csvdecode(file("../parameters.csv"))
-  # Define data for naming standards
-  naming = {
-    bu                = lower(split("-", data.azurerm_subscription.current.display_name)[1])  # Read app/bu from the subscription data block
-    environment       = lower(split("-", data.azurerm_subscription.current.display_name)[2])  # Read environment from subscription data block
-    locations         = var.location
-    nn                = lower(split("-", data.azurerm_subscription.current.display_name)[3])
-    subscription_name = data.azurerm_subscription.current.display_name
-    subscription_id   = data.azurerm_subscription.current.id
-  }
-  env_location = {
-    env_abbreviation       = var.environment_map[local.naming.environment]
-    locations_abbreviation = var.location_map[local.naming.locations]
-  }
-
-  # Extract the full purpose (including sequence) from RGname or var.purpose
-  purpose_full = var.RGname != "" ? lower(split("-", var.RGname)[3]) : var.purpose
-
-  # Split the purpose_full into purpose and sequence
-  purpose_parts = split("/", local.purpose_full)
-
-  # Assign purpose and sequence, defaulting sequence to "01" if not provided
-  purpose    = local.purpose_parts[0]
-  sequence   = length(local.purpose_parts) > 1 ? local.purpose_parts[1] : "01"
-  purpose_rg = local.purpose
-}
-
-data "azurerm_resource_group" "rg" {
-  for_each = { for inst in local.get_data : inst.unique_id => inst }
-  name     = join("-", [local.naming.bu, local.naming.environment, local.env_location.locations_abbreviation, local.purpose, "rg"])
-}
-
-output "resource_group_name" {
-  value = data.azurerm_resource_group.rg
-}
-
-data "azurerm_virtual_network" "vnet" {
-  for_each = { for index, inst in local.get_data : index => inst }
-   name = (lookup(each.value, "vnet_name", null) != null && lookup(each.value, "vnet_name", "") != "") ? each.value.vnet_name : join("-", [local.naming.bu, local.naming.environment, local.env_location.locations_abbreviation, "vnet", local.naming.nn])
-   resource_group_name  = (lookup(each.value, "vnet_resource_group", null) != null && lookup(each.value, "vnet_resource_group", "") != "") ? each.value.vnet_resource_group : join("-", [local.naming.bu, local.naming.environment, local.env_location.locations_abbreviation, "spokenetwork-rg"])
+hcl
+Copy code
+module "nic_module" {
+  source = "./path-to-nic-module"
   
+  backend_address_pool_id = module.load_balancer_module.backend_address_pool_id
+  # other necessary variables
+}
+3. Update NIC Module to Accept Backend Address Pool ID
+Add a variable in the NIC module to accept the backend address pool ID:
+
+hcl
+Copy code
+# Inside the NIC module
+variable "backend_address_pool_id" {
+  type = string
+}
+4. Create the Association within the NIC Module
+Use the backend_address_pool_id in the NIC module to create the association:
+
+hcl
+Copy code
+resource "azurerm_network_interface_backend_address_pool_association" "nic1_backend" {
+  for_each                   = { for row_id, inst in local.final_parms_map : row_id => inst }
+  network_interface_id       = azurerm_network_interface.nic1[each.key].id
+  ip_configuration_name      = "nic_ip_config"
+  backend_address_pool_id    = var.backend_address_pool_id
 }
 
-output "virtual_network_id" {
-  value      = data.azurerm_virtual_network.vnet
-  sensitive  = true
+resource "azurerm_network_interface_backend_address_pool_association" "nic2_backend" {
+  for_each                   = { for row_id, inst in local.final_parms_map : row_id => inst }
+  network_interface_id       = azurerm_network_interface.nic2[each.key].id
+  ip_configuration_name      = "nic_ip_config"
+  backend_address_pool_id    = var.backend_address_pool_id
 }
-
-data "azurerm_subnet" "subnet" {
-  for_each = { for index, inst in local.get_data : index => inst }
-  name                 = (lookup(each.value, "subnet_name", null) != null && lookup(each.value, "subnet_name", "") != "") ? each.value.subnet_name : var.subnetname //lz<app>-<env>-<region>-<purpose>-snet-<nn>
-  virtual_network_name = data.azurerm_virtual_network.vnet[each.key].name
-  resource_group_name  = (lookup(each.value, "vnet_resource_group", null) != null && lookup(each.value, "vnet_resource_group", "") != "") ? each.value.vnet_resource_group : join("-", [local.naming.bu, local.naming.environment, local.env_location.locations_abbreviation, "spokenetwork-rg"])
-}
-
-output "subnet_id" {
-  value      = data.azurerm_subnet.subnet
-  sensitive  = true
-}
-
-# Azure Load Balancer Resource
-resource "azurerm_lb" "internal_lb" {
-  for_each            = { for inst in local.get_data : inst.unique_id => inst }
-  name                = join("-", ["ari", local.naming.environment, local.env_location.locations_abbreviation, local.purpose_rg, "lbi", local.sequence])
-  location            = var.location
-  resource_group_name = data.azurerm_resource_group.rg[each.key].name
-  sku                 = lookup(each.value, "sku_name", var.sku_name)
-
-  frontend_ip_configuration {
-    name                          = "internal-${local.purpose_rg}-server-feip"
-    subnet_id                     = data.azurerm_subnet.subnet["0"].id
-    private_ip_address            = var.private_ip_address  # Use the variable
-    private_ip_address_allocation = "Static"
-  }
-}
-
-# Define Backend Address Pool
-resource "azurerm_lb_backend_address_pool" "internal_lb_bepool" {
-  for_each        = azurerm_lb.internal_lb
-  loadbalancer_id = azurerm_lb.internal_lb[each.key].id
-  name            = "internal-${local.purpose_rg}-server-bepool"
-}
-
-# Load Balancer Probe
-resource "azurerm_lb_probe" "tcp_probe" {
-  for_each            = azurerm_lb.internal_lb
-  name                = "internal-${local.purpose_rg}-server-tcp-probe"
-  loadbalancer_id     = azurerm_lb.internal_lb[each.key].id
-  protocol            = "Tcp"
-  port                = 20005
-  interval_in_seconds = 5
-  number_of_probes    = 5
-}
-
-# Load Balancer TCP Rule
-resource "azurerm_lb_rule" "tcp_rule" {
-  for_each                       = azurerm_lb.internal_lb
-  name                           = "internal-${local.purpose_rg}-server-tcp-lbrule"
-  loadbalancer_id                = azurerm_lb.internal_lb[each.key].id
-  protocol                       = "Tcp"
-  frontend_port                  = 20000
-  backend_port                   = 20000
-  frontend_ip_configuration_name = azurerm_lb.internal_lb[each.key].frontend_ip_configuration[0].name
-  backend_address_pool_ids       = [azurerm_lb_backend_address_pool.internal_lb_bepool[each.key].id]
-  idle_timeout_in_minutes        = 5
-  enable_floating_ip             = false
-  enable_tcp_reset               = false
-  disable_outbound_snat          = false
-  probe_id                       = azurerm_lb_probe.tcp_probe[each.key].id
-}
-
-# Load Balancer HTTPS Rule
-resource "azurerm_lb_rule" "https_rule" {
-  for_each                       = azurerm_lb.internal_lb
-  name                           = "internal-${local.purpose_rg}-server-https-lbrule"
-  loadbalancer_id                = azurerm_lb.internal_lb[each.key].id
-  protocol                       = "Tcp"
-  frontend_port                  = 443
-  backend_port                   = 443
-  frontend_ip_configuration_name = azurerm_lb.internal_lb[each.key].frontend_ip_configuration[0].name
-  backend_address_pool_ids       = [azurerm_lb_backend_address_pool.internal_lb_bepool[each.key].id]
-  idle_timeout_in_minutes        = 4
-  enable_floating_ip             = false
-  enable_tcp_reset               = false
-  disable_outbound_snat          = false
-  probe_id                       = azurerm_lb_probe.tcp_probe[each.key].id
-}
+Summary
+These changes ensure that the NIC module correctly references the backend address pool from the Load Balancer module, while keeping modules cleanly separated. Let me know if there are any additional specifics needed for this setup!
