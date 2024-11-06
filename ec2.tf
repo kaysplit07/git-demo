@@ -1,26 +1,27 @@
-name: 'Terraform Load Balancer Deployment'
+name: 'Load Balancer Deployment'
+run-name: '${{github.actor}} - Deploy Load Balancer'
 
 on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Choose environment'
-        required: true
         type: choice
+        description: 'Environment to deploy to'
+        required: true
         options:
           - dev
           - staging
           - prod
 
 jobs:
-  deploy:
+  deploy-lb:
+    name: Deploy Load Balancer
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Step to copy the correct backend config file to main.tf
-      - name: Set up Terraform backend for environment
+      - name: Select backend file based on environment
         run: |
           case "${{ inputs.environment }}" in
             dev) cp backend-dev.tf main.tf ;;
@@ -35,5 +36,5 @@ jobs:
         run: terraform plan -var="environment=${{ inputs.environment }}"
 
       - name: Terraform Apply
-        if: ${{ github.event.inputs.requestType == 'apply' }}
+        if: ${{ inputs.requestType == 'Create' }}
         run: terraform apply -auto-approve -var="environment=${{ inputs.environment }}"
