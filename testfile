@@ -1,145 +1,55 @@
-name: 'zLoad Balancer (Call)'
-run-name: '${{github.actor}} - Creating Load Balancer'
-on:
-  workflow_call:
-    inputs:
-      requestType:
-        type: string
-        required: false
-      location:
-        type: string
-        required: true
-      environment:
-        type: string
-        required: true
-      purpose:
-        type: string
-        required: false
-      purposeRG:
-        type: string
-        required: false
-      RGname:
-        type: string
-        required: false
-      subnetname:
-        type: string
-        required: false
-      sku_name:
-        type: string
-        required: false
-      private_ip_address:
-        type: string
-        required: false
-    secrets:
-      ARM_CLIENT_ID:
-        required: true
-      ARM_CLIENT_SECRET:
-        required: true
-      ARM_SUBSCRIPTION_ID:
-        required: true
-      ARM_TENANT_ID:
-        required: true
-env:
-  permissions:
-  contents: read
-jobs:
-  lb-create:
-    name: 'Create Azure Load Balancer'
-    env:
-      ARM_CLIENT_ID:        ${{secrets.ARM_CLIENT_ID}}
-      ARM_CLIENT_SECRET:    ${{secrets.ARM_CLIENT_SECRET}}
-      ARM_TENANT_ID:        ${{secrets.ARM_TENANT_ID}}
-      ARM_SUBSCRIPTION_ID:  ${{secrets.ARM_SUBSCRIPTION_ID}}
-      RESOURCE_GROUP_NAME:  ${{secrets.RESOURCE_GROUP_NAME}}
-      STORAGE_ACCOUNT_NAME: ${{secrets.STORAGE_ACCOUNT_NAME}}
-      ROOT_PATH:            'Azure/Azure-LB'
-    runs-on: 
-      group: aks-runners
-    environment: ${{inputs.environment}}
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - name: 'Checkout - Load Balancer'
-        uses: actions/checkout@v3
-        
-      - name: 'Terraform Initialize - Load Balancer'
-        uses: hashicorp/terraform-github-actions@master
-        with:
-          tf_actions_version:     latest
-          tf_actions_subcommand:  'init'
-          tf_actions_working_dir: ${{env.ROOT_PATH}}
-          tf_actions_comment:     true 
-        env:
-          TF_VAR_resource_group_name:      '${{ secrets.RESOURCE_GROUP_NAME }}' 
-          TF_VAR_storage_account_name:      '${{ secrets.STORAGE_ACCOUNT_NAME }}' 
-          TF_VAR_requesttype:         '${{inputs.requesttype}}'
-          TF_VAR_location:            '${{inputs.location}}'
-          TF_VAR_environment:         '${{inputs.environment}}'
-          TF_VAR_purpose:             '${{inputs.purpose}}'
-          TF_VAR_purpose_rg:          '${{inputs.purposeRG}}'
-          TF_VAR_RGname:              '${{inputs.RGname}}'
-          TF_VAR_subnetname:          '${{inputs.subnetname}}'
-          TF_VAR_sku_name:            '${{inputs.sku_name}}'
-          TF_VAR_private_ip_address:  '${{inputs.private_ip_address}}'
-      - name: 'Terraform Plan - Load Balancer'
-        if: ${{ inputs.requestType == 'Create (with New RG)' || inputs.requestType == 'Create (with Existing RG)' }}
-        uses: hashicorp/terraform-github-actions@master
-        with:
-          tf_actions_version:     latest
-          tf_actions_subcommand:  'plan'
-          tf_actions_working_dir: ${{env.ROOT_PATH}}
-          tf_actions_comment:     true
-        env:
-          TF_VAR_resource_group_name:      '${{ secrets.RESOURCE_GROUP_NAME }}' 
-          TF_VAR_storage_account_name:      '${{ secrets.STORAGE_ACCOUNT_NAME }}'
-          TF_VAR_requesttype:         '${{inputs.requesttype}}'
-          TF_VAR_location:            '${{inputs.location}}'
-          TF_VAR_environment:         '${{inputs.environment}}'
-          TF_VAR_purpose:             '${{inputs.purpose}}'
-          TF_VAR_purpose_rg:          '${{inputs.purposeRG}}'
-          TF_VAR_RGname:              '${{inputs.RGname}}'
-          TF_VAR_subnetname:          '${{inputs.subnetname}}'
-          TF_VAR_sku_name:            '${{inputs.sku_name}}'
-          TF_VAR_private_ip_address:  '${{inputs.private_ip_address}}'
+To update the workflow using Solution 3 (environment variables), set environment variables for your Azure backend configuration. Below is a revised approach to initialize Terraform with backend settings passed as environment variables.
 
-      - name: 'Terraform Apply - Load Balancer'
-        if: ${{ inputs.requestType == 'Create (with New RG)' || inputs.requestType == 'Create (with Existing RG)' }}
-        uses: hashicorp/terraform-github-actions@master
-        with:
-          tf_actions_version:     latest
-          tf_actions_subcommand:  'apply'
-          tf_actions_working_dir: ${{env.ROOT_PATH}}
-          tf_actions_comment:     true
-        env:
-          TF_VAR_resource_group_name:      '${{ secrets.RESOURCE_GROUP_NAME }}' 
-          TF_VAR_storage_account_name:      '${{ secrets.STORAGE_ACCOUNT_NAME }}'
-          TF_VAR_requesttype:         '${{inputs.requesttype}}'
-          TF_VAR_location:            '${{inputs.location}}'
-          TF_VAR_environment:         '${{inputs.environment}}'
-          TF_VAR_purpose:             '${{inputs.purpose}}'
-          TF_VAR_purpose_rg:          '${{inputs.purposeRG}}'
-          TF_VAR_RGname:              '${{inputs.RGname}}'
-          TF_VAR_subnetname:          '${{inputs.subnetname}}'
-          TF_VAR_sku_name:            '${{inputs.sku_name}}'
-          TF_VAR_private_ip_address:  '${{inputs.private_ip_address}}'
-      - name: 'Terraform Remove - Load Balancer'
-        if: ${{ inputs.requestType == 'Remove' }}
-        uses: hashicorp/terraform-github-actions@master
-        with:
-          tf_actions_version:     latest
-          tf_actions_subcommand:  'destroy'
-          tf_actions_working_dir: ${{env.ROOT_PATH}}
-          tf_actions_comment:     true
-        env:
-          TF_VAR_resource_group_name:      '${{ secrets.RESOURCE_GROUP_NAME }}' 
-          TF_VAR_storage_account_name:      '${{ secrets.STORAGE_ACCOUNT_NAME }}'
-          TF_VAR_requesttype:         '${{inputs.requesttype}}'
-          TF_VAR_location:            '${{inputs.location}}'
-          TF_VAR_environment:         '${{inputs.environment}}'
-          TF_VAR_purpose:             '${{inputs.purpose}}'
-          TF_VAR_purpose_rg:          '${{inputs.purposeRG}}'
-          TF_VAR_RGname:              '${{inputs.RGname}}'
-          TF_VAR_subnetname:          '${{inputs.subnetname}}'
-          TF_VAR_sku_name:            '${{inputs.sku_name}}'
-          TF_VAR_private_ip_address:  '${{inputs.private_ip_address}}'
+Updated Workflow
+Step 1: Set Environment Variables
+In your terminal, define the necessary environment variables. You can add these to a script or use them directly in your shell session:
+
+bash
+Copy code
+export ARM_RESOURCE_GROUP_NAME="your-resource-group-name"
+export ARM_STORAGE_ACCOUNT_NAME="your-storage-account-name"
+export ARM_CONTAINER_NAME="terraform-state"
+export ARM_KEY="resource_type/resource_name.tfstate"
+Step 2: Reference Environment Variables in main.tf
+Since Terraform backend configurations do not directly support variables, you’ll use environment variables to supply these values. Ensure that main.tf doesn’t define the backend configuration, as it will be sourced from the environment variables.
+
+Step 3: Initialize Terraform with Environment Variables
+Run the following Terraform initialization command, which will use the environment variables for backend configuration:
+
+bash
+Copy code
+terraform init
+Optional: Automate with a Script
+To simplify initialization, you can create a shell script (e.g., init.sh) to set up the environment and initialize Terraform in one step:
+
+bash
+Copy code
+#!/bin/bash
+
+# Set environment variables for backend configuration
+export ARM_RESOURCE_GROUP_NAME="your-resource-group-name"
+export ARM_STORAGE_ACCOUNT_NAME="your-storage-account-name"
+export ARM_CONTAINER_NAME="terraform-state"
+export ARM_KEY="resource_type/resource_name.tfstate"
+
+# Initialize Terraform
+terraform init
+Then run the script:
+
+bash
+Copy code
+./init.sh
+Summary
+This approach avoids hardcoding sensitive values in your Terraform configuration file and keeps the backend configuration flexible across different environments. The terraform init command will pick up the backend configuration from the environment variables you defined.
+
+
+
+
+
+
+
+
+
+
+
+
