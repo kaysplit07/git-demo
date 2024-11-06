@@ -2,14 +2,7 @@ provider "azurerm" {
   features {}
 }
 
-  terraform {
-  backend "azurerm" {
-    resource_group_name   = var.resource_group_name
-    storage_account_name  = var.storage_account_name
-    container_name        = "terraform-state"
-    key                   = "${var.resource_type}/${var.resource_name}.tfstate"
-  }
-}
+  
 
 data "azurerm_subscription" "current" {}  # Read the current subscription info
 
