@@ -42,23 +42,25 @@ on:
 env:
   permissions:
     contents: read
+
 jobs:
   lb-create:
     name: 'Create Azure Load Balancer'
     env:
-      ARM_CLIENT_ID:        ${{secrets.ARM_CLIENT_ID}}
-      ARM_CLIENT_SECRET:    ${{secrets.ARM_CLIENT_SECRET}}
-      ARM_TENANT_ID:        ${{secrets.ARM_TENANT_ID}}
-      ARM_SUBSCRIPTION_ID:  ${{secrets.ARM_SUBSCRIPTION_ID}}
-      RESOURCE_GROUP_NAME:  ${{secrets.RESOURCE_GROUP_NAME}}
-      STORAGE_ACCOUNT_NAME: ${{secrets.STORAGE_ACCOUNT_NAME}}
+      ARM_CLIENT_ID:        ${{ secrets.ARM_CLIENT_ID }}
+      ARM_CLIENT_SECRET:    ${{ secrets.ARM_CLIENT_SECRET }}
+      ARM_TENANT_ID:        ${{ secrets.ARM_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID:  ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      RESOURCE_GROUP_NAME:  ${{ secrets.RESOURCE_GROUP_NAME }}
+      STORAGE_ACCOUNT_NAME: ${{ secrets.STORAGE_ACCOUNT_NAME }}
       ROOT_PATH:            'Azure/Azure-LB'
     runs-on: 
       group: aks-runners
-    environment: ${{inputs.environment}}
+    environment: ${{ inputs.environment }}
     defaults:
       run:
         shell: bash
+
     steps:
       - name: 'Checkout - Load Balancer'
         uses: actions/checkout@v3
@@ -76,20 +78,20 @@ jobs:
         with:
           tf_actions_version:     latest
           tf_actions_subcommand:  'init'
-          tf_actions_working_dir: ${{env.ROOT_PATH}}
+          tf_actions_working_dir: ${{ env.ROOT_PATH }}
           tf_actions_comment:     true 
         env:
           TF_VAR_resource_group_name:      '${{ secrets.RESOURCE_GROUP_NAME }}' 
           TF_VAR_storage_account_name:     '${{ secrets.STORAGE_ACCOUNT_NAME }}' 
-          TF_VAR_requesttype:              '${{inputs.requesttype}}'
-          TF_VAR_location:                 '${{inputs.location}}'
-          TF_VAR_environment:              '${{inputs.environment}}'
-          TF_VAR_purpose:                  '${{inputs.purpose}}'
-          TF_VAR_purpose_rg:               '${{inputs.purposeRG}}'
-          TF_VAR_RGname:                   '${{inputs.RGname}}'
-          TF_VAR_subnetname:               '${{inputs.subnetname}}'
-          TF_VAR_sku_name:                 '${{inputs.sku_name}}'
-          TF_VAR_private_ip_address:       '${{inputs.private_ip_address}}'
+          TF_VAR_requesttype:              '${{ inputs.requestType }}'
+          TF_VAR_location:                 '${{ inputs.location }}'
+          TF_VAR_environment:              '${{ inputs.environment }}'
+          TF_VAR_purpose:                  '${{ inputs.purpose }}'
+          TF_VAR_purpose_rg:               '${{ inputs.purposeRG }}'
+          TF_VAR_RGname:                   '${{ inputs.RGname }}'
+          TF_VAR_subnetname:               '${{ inputs.subnetname }}'
+          TF_VAR_sku_name:                 '${{ inputs.sku_name }}'
+          TF_VAR_private_ip_address:       '${{ inputs.private_ip_address }}'
           
       - name: 'Terraform Plan - Load Balancer'
         if: ${{ inputs.requestType == 'Create (with New RG)' || inputs.requestType == 'Create (with Existing RG)' }}
@@ -97,20 +99,20 @@ jobs:
         with:
           tf_actions_version:     latest
           tf_actions_subcommand:  'plan'
-          tf_actions_working_dir: ${{env.ROOT_PATH}}
+          tf_actions_working_dir: ${{ env.ROOT_PATH }}
           tf_actions_comment:     true
         env:
           TF_VAR_resource_group_name:      '${{ secrets.RESOURCE_GROUP_NAME }}' 
           TF_VAR_storage_account_name:     '${{ secrets.STORAGE_ACCOUNT_NAME }}'
-          TF_VAR_requesttype:              '${{inputs.requesttype}}'
-          TF_VAR_location:                 '${{inputs.location}}'
-          TF_VAR_environment:              '${{inputs.environment}}'
-          TF_VAR_purpose:                  '${{inputs.purpose}}'
-          TF_VAR_purpose_rg:               '${{inputs.purposeRG}}'
-          TF_VAR_RGname:                   '${{inputs.RGname}}'
-          TF_VAR_subnetname:               '${{inputs.subnetname}}'
-          TF_VAR_sku_name:                 '${{inputs.sku_name}}'
-          TF_VAR_private_ip_address:       '${{inputs.private_ip_address}}'
+          TF_VAR_requesttype:              '${{ inputs.requestType }}'
+          TF_VAR_location:                 '${{ inputs.location }}'
+          TF_VAR_environment:              '${{ inputs.environment }}'
+          TF_VAR_purpose:                  '${{ inputs.purpose }}'
+          TF_VAR_purpose_rg:               '${{ inputs.purposeRG }}'
+          TF_VAR_RGname:                   '${{ inputs.RGname }}'
+          TF_VAR_subnetname:               '${{ inputs.subnetname }}'
+          TF_VAR_sku_name:                 '${{ inputs.sku_name }}'
+          TF_VAR_private_ip_address:       '${{ inputs.private_ip_address }}'
 
       - name: 'Terraform Apply - Load Balancer'
         if: ${{ inputs.requestType == 'Create (with New RG)' || inputs.requestType == 'Create (with Existing RG)' }}
@@ -118,20 +120,20 @@ jobs:
         with:
           tf_actions_version:     latest
           tf_actions_subcommand:  'apply'
-          tf_actions_working_dir: ${{env.ROOT_PATH}}
+          tf_actions_working_dir: ${{ env.ROOT_PATH }}
           tf_actions_comment:     true
         env:
           TF_VAR_resource_group_name:      '${{ secrets.RESOURCE_GROUP_NAME }}' 
           TF_VAR_storage_account_name:     '${{ secrets.STORAGE_ACCOUNT_NAME }}'
-          TF_VAR_requesttype:              '${{inputs.requesttype}}'
-          TF_VAR_location:                 '${{inputs.location}}'
-          TF_VAR_environment:              '${{inputs.environment}}'
-          TF_VAR_purpose:                  '${{inputs.purpose}}'
-          TF_VAR_purpose_rg:               '${{inputs.purposeRG}}'
-          TF_VAR_RGname:                   '${{inputs.RGname}}'
-          TF_VAR_subnetname:               '${{inputs.subnetname}}'
-          TF_VAR_sku_name:                 '${{inputs.sku_name}}'
-          TF_VAR_private_ip_address:       '${{inputs.private_ip_address}}'
+          TF_VAR_requesttype:              '${{ inputs.requestType }}'
+          TF_VAR_location:                 '${{ inputs.location }}'
+          TF_VAR_environment:              '${{ inputs.environment }}'
+          TF_VAR_purpose:                  '${{ inputs.purpose }}'
+          TF_VAR_purpose_rg:               '${{ inputs.purposeRG }}'
+          TF_VAR_RGname:                   '${{ inputs.RGname }}'
+          TF_VAR_subnetname:               '${{ inputs.subnetname }}'
+          TF_VAR_sku_name:                 '${{ inputs.sku_name }}'
+          TF_VAR_private_ip_address:       '${{ inputs.private_ip_address }}'
 
       - name: 'Terraform Remove - Load Balancer'
         if: ${{ inputs.requestType == 'Remove' }}
@@ -139,17 +141,17 @@ jobs:
         with:
           tf_actions_version:     latest
           tf_actions_subcommand:  'destroy'
-          tf_actions_working_dir: ${{env.ROOT_PATH}}
+          tf_actions_working_dir: ${{ env.ROOT_PATH }}
           tf_actions_comment:     true
         env:
           TF_VAR_resource_group_name:      '${{ secrets.RESOURCE_GROUP_NAME }}' 
           TF_VAR_storage_account_name:     '${{ secrets.STORAGE_ACCOUNT_NAME }}'
-          TF_VAR_requesttype:              '${{inputs.requesttype}}'
-          TF_VAR_location:                 '${{inputs.location}}'
-          TF_VAR_environment:              '${{inputs.environment}}'
-          TF_VAR_purpose:                  '${{inputs.purpose}}'
-          TF_VAR_purpose_rg:               '${{inputs.purposeRG}}'
-          TF_VAR_RGname:                   '${{inputs.RGname}}'
-          TF_VAR_subnetname:               '${{inputs.subnetname}}'
-          TF_VAR_sku_name:                 '${{inputs.sku_name}}'
-          TF_VAR_private_ip_address:       '${{inputs.private_ip_address}}'
+          TF_VAR_requesttype:              '${{ inputs.requestType }}'
+          TF_VAR_location:                 '${{ inputs.location }}'
+          TF_VAR_environment:              '${{ inputs.environment }}'
+          TF_VAR_purpose:                  '${{ inputs.purpose }}'
+          TF_VAR_purpose_rg:               '${{ inputs.purposeRG }}'
+          TF_VAR_RGname:                   '${{ inputs.RGname }}'
+          TF_VAR_subnetname:               '${{ inputs.subnetname }}'
+          TF_VAR_sku_name:                 '${{ inputs.sku_name }}'
+          TF_VAR_private_ip_address:       '${{ inputs.private_ip_address }}'
