@@ -2,7 +2,14 @@ provider "azurerm" {
   features {}
 }
 
-  
+#   terraform {
+#   backend "azurerm" {
+#     resource_group_name   = var.resource_group_name
+#     storage_account_name  = var.storage_account_name
+#     container_name        = "terraform-state"
+#     key                   = "${var.resource_type}/${var.resource_name}.tfstate"
+#   }
+# }
 
 data "azurerm_subscription" "current" {}  # Read the current subscription info
 
@@ -69,6 +76,10 @@ output "subnet_id" {
   sensitive  = true
 }
 
+output "backend_address_pool_ids" {
+  description = "Map of backend address pool IDs"
+  value = { for key, bap in azurerm_lb_backend_address_pool.internal_lb_bepool : key => bap.id }
+}
 # Azure Load Balancer Resource
 resource "azurerm_lb" "internal_lb" {
   for_each            = { for inst in local.get_data : inst.unique_id => inst }
@@ -91,7 +102,6 @@ resource "azurerm_lb_backend_address_pool" "internal_lb_bepool" {
   loadbalancer_id = azurerm_lb.internal_lb[each.key].id
   name            = "internal-${local.purpose_rg}-server-bepool"
 }
-
 # Load Balancer Probe
 resource "azurerm_lb_probe" "tcp_probe" {
   for_each            = azurerm_lb.internal_lb
