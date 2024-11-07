@@ -1,157 +1,59 @@
-name: 'zLoad Balancer (Call)'
-run-name: '${{github.actor}} - Creating Load Balancer'
-on:
-  workflow_call:
-    inputs:
-      requestType:
-        type: string
-        required: false
-      location:
-        type: string
-        required: true
-      environment:
-        type: string
-        required: true
-      purpose:
-        type: string
-        required: false
-      purposeRG:
-        type: string
-        required: false
-      RGname:
-        type: string
-        required: false
-      subnetname:
-        type: string
-        required: false
-      sku_name:
-        type: string
-        required: false
-      private_ip_address:
-        type: string
-        required: false
-    secrets:
-      ARM_CLIENT_ID:
-        required: true
-      ARM_CLIENT_SECRET:
-        required: true
-      ARM_SUBSCRIPTION_ID:
-        required: true
-      ARM_TENANT_ID:
-        required: true
-env:
-  permissions:
-    contents: read
+To associate the NIC and the Load Balancer backend address pool across modules, follow these updates in each relevant code block.
 
-jobs:
-  lb-create:
-    name: 'Create Azure Load Balancer'
-    env:
-      ARM_CLIENT_ID:        ${{ secrets.ARM_CLIENT_ID }}
-      ARM_CLIENT_SECRET:    ${{ secrets.ARM_CLIENT_SECRET }}
-      ARM_TENANT_ID:        ${{ secrets.ARM_TENANT_ID }}
-      ARM_SUBSCRIPTION_ID:  ${{ secrets.ARM_SUBSCRIPTION_ID }}
-      RESOURCE_GROUP_NAME:  ${{ secrets.RESOURCE_GROUP_NAME }}
-      STORAGE_ACCOUNT_NAME: ${{ secrets.STORAGE_ACCOUNT_NAME }}
-      ROOT_PATH:            'Azure/Azure-LB'
-    runs-on: 
-      group: aks-runners
-    environment: ${{ inputs.environment }}
-    defaults:
-      run:
-        shell: bash
+1. Export Backend Address Pool ID in Load Balancer Module
+In the Load Balancer module, export the backend address pool ID:
 
-    steps:
-      - name: 'Checkout - Load Balancer'
-        uses: actions/checkout@v3
-      
-      - name: Select backend file based on environment
-        run: |
-          case "${{ inputs.environment }}" in
-            dev) cp backend-dev.tf main.tf ;;
-            uat) cp backend-uat.tf main.tf ;;
-            prod) cp backend-prod.tf main.tf ;;
-          esac
-        
-      - name: 'Terraform Initialize - Load Balancer'
-        uses: hashicorp/terraform-github-actions@master
-        with:
-          tf_actions_version:     latest
-          tf_actions_subcommand:  'init'
-          tf_actions_working_dir: ${{ env.ROOT_PATH }}
-          tf_actions_comment:     true 
-        env:
-          TF_VAR_resource_group_name:      '${{ secrets.RESOURCE_GROUP_NAME }}' 
-          TF_VAR_storage_account_name:     '${{ secrets.STORAGE_ACCOUNT_NAME }}' 
-          TF_VAR_requesttype:              '${{ inputs.requestType }}'
-          TF_VAR_location:                 '${{ inputs.location }}'
-          TF_VAR_environment:              '${{ inputs.environment }}'
-          TF_VAR_purpose:                  '${{ inputs.purpose }}'
-          TF_VAR_purpose_rg:               '${{ inputs.purposeRG }}'
-          TF_VAR_RGname:                   '${{ inputs.RGname }}'
-          TF_VAR_subnetname:               '${{ inputs.subnetname }}'
-          TF_VAR_sku_name:                 '${{ inputs.sku_name }}'
-          TF_VAR_private_ip_address:       '${{ inputs.private_ip_address }}'
-          
-      - name: 'Terraform Plan - Load Balancer'
-        if: ${{ inputs.requestType == 'Create (with New RG)' || inputs.requestType == 'Create (with Existing RG)' }}
-        uses: hashicorp/terraform-github-actions@master
-        with:
-          tf_actions_version:     latest
-          tf_actions_subcommand:  'plan'
-          tf_actions_working_dir: ${{ env.ROOT_PATH }}
-          tf_actions_comment:     true
-        env:
-          TF_VAR_resource_group_name:      '${{ secrets.RESOURCE_GROUP_NAME }}' 
-          TF_VAR_storage_account_name:     '${{ secrets.STORAGE_ACCOUNT_NAME }}'
-          TF_VAR_requesttype:              '${{ inputs.requestType }}'
-          TF_VAR_location:                 '${{ inputs.location }}'
-          TF_VAR_environment:              '${{ inputs.environment }}'
-          TF_VAR_purpose:                  '${{ inputs.purpose }}'
-          TF_VAR_purpose_rg:               '${{ inputs.purposeRG }}'
-          TF_VAR_RGname:                   '${{ inputs.RGname }}'
-          TF_VAR_subnetname:               '${{ inputs.subnetname }}'
-          TF_VAR_sku_name:                 '${{ inputs.sku_name }}'
-          TF_VAR_private_ip_address:       '${{ inputs.private_ip_address }}'
+hcl
+Copy code
+# Inside the Load Balancer module
+output "backend_address_pool_id" {
+  value = azurerm_lb_backend_address_pool.internal_lb_bepool.id
+}
+2. Pass the Backend Pool ID to the NIC Module
+When calling the NIC module, pass the backend_address_pool_id as an input variable:
 
-      - name: 'Terraform Apply - Load Balancer'
-        if: ${{ inputs.requestType == 'Create (with New RG)' || inputs.requestType == 'Create (with Existing RG)' }}
-        uses: hashicorp/terraform-github-actions@master
-        with:
-          tf_actions_version:     latest
-          tf_actions_subcommand:  'apply'
-          tf_actions_working_dir: ${{ env.ROOT_PATH }}
-          tf_actions_comment:     true
-        env:
-          TF_VAR_resource_group_name:      '${{ secrets.RESOURCE_GROUP_NAME }}' 
-          TF_VAR_storage_account_name:     '${{ secrets.STORAGE_ACCOUNT_NAME }}'
-          TF_VAR_requesttype:              '${{ inputs.requestType }}'
-          TF_VAR_location:                 '${{ inputs.location }}'
-          TF_VAR_environment:              '${{ inputs.environment }}'
-          TF_VAR_purpose:                  '${{ inputs.purpose }}'
-          TF_VAR_purpose_rg:               '${{ inputs.purposeRG }}'
-          TF_VAR_RGname:                   '${{ inputs.RGname }}'
-          TF_VAR_subnetname:               '${{ inputs.subnetname }}'
-          TF_VAR_sku_name:                 '${{ inputs.sku_name }}'
-          TF_VAR_private_ip_address:       '${{ inputs.private_ip_address }}'
+hcl
+Copy code
+module "nic_module" {
+  source = "./path-to-nic-module"
+  
+  backend_address_pool_id = module.load_balancer_module.backend_address_pool_id
+  # other necessary variables
+}
+3. Update NIC Module to Accept Backend Address Pool ID
+Add a variable in the NIC module to accept the backend address pool ID:
 
-      - name: 'Terraform Remove - Load Balancer'
-        if: ${{ inputs.requestType == 'Remove' }}
-        uses: hashicorp/terraform-github-actions@master
-        with:
-          tf_actions_version:     latest
-          tf_actions_subcommand:  'destroy'
-          tf_actions_working_dir: ${{ env.ROOT_PATH }}
-          tf_actions_comment:     true
-        env:
-          TF_VAR_resource_group_name:      '${{ secrets.RESOURCE_GROUP_NAME }}' 
-          TF_VAR_storage_account_name:     '${{ secrets.STORAGE_ACCOUNT_NAME }}'
-          TF_VAR_requesttype:              '${{ inputs.requestType }}'
-          TF_VAR_location:                 '${{ inputs.location }}'
-          TF_VAR_environment:              '${{ inputs.environment }}'
-          TF_VAR_purpose:                  '${{ inputs.purpose }}'
-          TF_VAR_purpose_rg:               '${{ inputs.purposeRG }}'
-          TF_VAR_RGname:                   '${{ inputs.RGname }}'
-          TF_VAR_subnetname:               '${{ inputs.subnetname }}'
-          TF_VAR_sku_name:                 '${{ inputs.sku_name }}'
-          TF_VAR_private_ip_address:       '${{ inputs.private_ip_address }}'
+hcl
+Copy code
+# Inside the NIC module
+variable "backend_address_pool_id" {
+  type = string
+}
+4. Create the Association within the NIC Module
+Use the backend_address_pool_id in the NIC module to create the association:
+
+hcl
+Copy code
+resource "azurerm_network_interface_backend_address_pool_association" "nic1_backend" {
+  for_each                   = { for row_id, inst in local.final_parms_map : row_id => inst }
+  network_interface_id       = azurerm_network_interface.nic1[each.key].id
+  ip_configuration_name      = "nic_ip_config"
+  backend_address_pool_id    = var.backend_address_pool_id
+}
+
+resource "azurerm_network_interface_backend_address_pool_association" "nic2_backend" {
+  for_each                   = { for row_id, inst in local.final_parms_map : row_id => inst }
+  network_interface_id       = azurerm_network_interface.nic2[each.key].id
+  ip_configuration_name      = "nic_ip_config"
+  backend_address_pool_id    = var.backend_address_pool_id
+}
+Summary
+These changes ensure that the NIC module correctly references the backend address pool from the Load Balancer module, while keeping modules cleanly separated. Let me know if there are any additional specifics needed for this setup!
+
+
+
+
+
+
+You said:
+with this be added to load balancer code or VM
