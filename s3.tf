@@ -41,7 +41,7 @@ on:
         required: true
 env:
   permissions:
-  contents: read
+    contents: read
 jobs:
   lb-create:
     name: 'Create Azure Load Balancer'
@@ -90,9 +90,9 @@ jobs:
           TF_VAR_subnetname:               '${{inputs.subnetname}}'
           TF_VAR_sku_name:                 '${{inputs.sku_name}}'
           TF_VAR_private_ip_address:       '${{inputs.private_ip_address}}'
+          
       - name: 'Terraform Plan - Load Balancer'
-        run: terraform plan -var="environment=${{ inputs.environment }}"
-        if: ${{ inputs.requestType == 'Create (with New RG)' || inputs.requestType == 'Create (with Existing RG)' }} 
+        if: ${{ inputs.requestType == 'Create (with New RG)' || inputs.requestType == 'Create (with Existing RG)' }}
         uses: hashicorp/terraform-github-actions@master
         with:
           tf_actions_version:     latest
@@ -101,19 +101,18 @@ jobs:
           tf_actions_comment:     true
         env:
           TF_VAR_resource_group_name:      '${{ secrets.RESOURCE_GROUP_NAME }}' 
-          TF_VAR_storage_account_name:      '${{ secrets.STORAGE_ACCOUNT_NAME }}'
-          TF_VAR_requesttype:         '${{inputs.requesttype}}'
-          TF_VAR_location:            '${{inputs.location}}'
-          TF_VAR_environment:         '${{inputs.environment}}'
-          TF_VAR_purpose:             '${{inputs.purpose}}'
-          TF_VAR_purpose_rg:          '${{inputs.purposeRG}}'
-          TF_VAR_RGname:              '${{inputs.RGname}}'
-          TF_VAR_subnetname:          '${{inputs.subnetname}}'
-          TF_VAR_sku_name:            '${{inputs.sku_name}}'
-          TF_VAR_private_ip_address:  '${{inputs.private_ip_address}}'
+          TF_VAR_storage_account_name:     '${{ secrets.STORAGE_ACCOUNT_NAME }}'
+          TF_VAR_requesttype:              '${{inputs.requesttype}}'
+          TF_VAR_location:                 '${{inputs.location}}'
+          TF_VAR_environment:              '${{inputs.environment}}'
+          TF_VAR_purpose:                  '${{inputs.purpose}}'
+          TF_VAR_purpose_rg:               '${{inputs.purposeRG}}'
+          TF_VAR_RGname:                   '${{inputs.RGname}}'
+          TF_VAR_subnetname:               '${{inputs.subnetname}}'
+          TF_VAR_sku_name:                 '${{inputs.sku_name}}'
+          TF_VAR_private_ip_address:       '${{inputs.private_ip_address}}'
 
       - name: 'Terraform Apply - Load Balancer'
-        run: terraform apply -auto-approve -var="environment=${{ inputs.environment }}"
         if: ${{ inputs.requestType == 'Create (with New RG)' || inputs.requestType == 'Create (with Existing RG)' }}
         uses: hashicorp/terraform-github-actions@master
         with:
@@ -123,16 +122,17 @@ jobs:
           tf_actions_comment:     true
         env:
           TF_VAR_resource_group_name:      '${{ secrets.RESOURCE_GROUP_NAME }}' 
-          TF_VAR_storage_account_name:      '${{ secrets.STORAGE_ACCOUNT_NAME }}'
-          TF_VAR_requesttype:         '${{inputs.requesttype}}'
-          TF_VAR_location:            '${{inputs.location}}'
-          TF_VAR_environment:         '${{inputs.environment}}'
-          TF_VAR_purpose:             '${{inputs.purpose}}'
-          TF_VAR_purpose_rg:          '${{inputs.purposeRG}}'
-          TF_VAR_RGname:              '${{inputs.RGname}}'
-          TF_VAR_subnetname:          '${{inputs.subnetname}}'
-          TF_VAR_sku_name:            '${{inputs.sku_name}}'
-          TF_VAR_private_ip_address:  '${{inputs.private_ip_address}}'
+          TF_VAR_storage_account_name:     '${{ secrets.STORAGE_ACCOUNT_NAME }}'
+          TF_VAR_requesttype:              '${{inputs.requesttype}}'
+          TF_VAR_location:                 '${{inputs.location}}'
+          TF_VAR_environment:              '${{inputs.environment}}'
+          TF_VAR_purpose:                  '${{inputs.purpose}}'
+          TF_VAR_purpose_rg:               '${{inputs.purposeRG}}'
+          TF_VAR_RGname:                   '${{inputs.RGname}}'
+          TF_VAR_subnetname:               '${{inputs.subnetname}}'
+          TF_VAR_sku_name:                 '${{inputs.sku_name}}'
+          TF_VAR_private_ip_address:       '${{inputs.private_ip_address}}'
+
       - name: 'Terraform Remove - Load Balancer'
         if: ${{ inputs.requestType == 'Remove' }}
         uses: hashicorp/terraform-github-actions@master
@@ -143,18 +143,13 @@ jobs:
           tf_actions_comment:     true
         env:
           TF_VAR_resource_group_name:      '${{ secrets.RESOURCE_GROUP_NAME }}' 
-          TF_VAR_storage_account_name:      '${{ secrets.STORAGE_ACCOUNT_NAME }}'
-          TF_VAR_requesttype:         '${{inputs.requesttype}}'
-          TF_VAR_location:            '${{inputs.location}}'
-          TF_VAR_environment:         '${{inputs.environment}}'
-          TF_VAR_purpose:             '${{inputs.purpose}}'
-          TF_VAR_purpose_rg:          '${{inputs.purposeRG}}'
-          TF_VAR_RGname:              '${{inputs.RGname}}'
-          TF_VAR_subnetname:          '${{inputs.subnetname}}'
-          TF_VAR_sku_name:            '${{inputs.sku_name}}'
-
-
-error
-LBCreate.yml" (source branch with sha:e8319ec2bdcb84d88b113f59531277cde037c273)
-: a step cannot have both the `uses` and `run` keys
-          TF_VAR_private_ip_address:  '${{inputs.private_ip_address}}'
+          TF_VAR_storage_account_name:     '${{ secrets.STORAGE_ACCOUNT_NAME }}'
+          TF_VAR_requesttype:              '${{inputs.requesttype}}'
+          TF_VAR_location:                 '${{inputs.location}}'
+          TF_VAR_environment:              '${{inputs.environment}}'
+          TF_VAR_purpose:                  '${{inputs.purpose}}'
+          TF_VAR_purpose_rg:               '${{inputs.purposeRG}}'
+          TF_VAR_RGname:                   '${{inputs.RGname}}'
+          TF_VAR_subnetname:               '${{inputs.subnetname}}'
+          TF_VAR_sku_name:                 '${{inputs.sku_name}}'
+          TF_VAR_private_ip_address:       '${{inputs.private_ip_address}}'
