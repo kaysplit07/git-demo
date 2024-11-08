@@ -1,40 +1,27 @@
-name: 'Load Balancer Deployment'
-run-name: '${{github.actor}} - Deploy Load Balancer'
+# Variable to receive the load balancer backend pool ID from the load balancer module
+variable "loadbalancer_backend_address_pool_id" {
+  description = "ID of the load balancer backend address pool"
+  type        = map(string)
+}
 
-on:
-  workflow_dispatch:
-    inputs:
-      environment:
-        type: choice
-        description: 'Environment to deploy to'
-        required: true
-        options:
-          - dev
-          - staging
-          - prod
+# Network Interface Resource
+resource "azurerm_network_interface" "nic" {
+  provider = azurerm.adt
+  for_each = { for row_id, inst in local.final_parms_map : row_id => inst }
+  location            = local.naming.location
+  name                = (each.value).nic_name
+  resource_group_name = (each.value).rg_name
 
-jobs:
-  deploy-lb:
-    name: Deploy Load Balancer
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+  ip_configuration {
+    name                          = join("-", [(each.value).vm_name, "nic_config"])
+    subnet_id                     = (each.value).nic_subnet_id
+    private_ip_address_allocation = "Dynamic"
+  }
+}
 
-      - name: Select backend file based on environment
-        run: |
-          case "${{ inputs.environment }}" in
-            dev) cp backend-dev.tf main.tf ;;
-            staging) cp backend-staging.tf main.tf ;;
-            prod) cp backend-prod.tf main.tf ;;
-          esac
-
-      - name: Terraform Init
-        run: terraform init
-
-      - name: Terraform Plan
-        run: terraform plan -var="environment=${{ inputs.environment }}"
-
-      - name: Terraform Apply
-        if: ${{ inputs.requestType == 'Create' }}
-        run: terraform apply -auto-approve -var="environment=${{ inputs.environment }}"
+# Backend Address Pool Association Resource
+resource "azurerm_network_interface_backend_address_pool_association" "VM_to_LB" {
+  for_each                         = azurerm_network_interface.nic
+  network_interface_id             = each.value.id
+  backend_address_pool_id          = var.loadbalancer_backend_address_pool_id[each.key]
+}
