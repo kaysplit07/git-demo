@@ -1,9 +1,6 @@
-plan: error: failed to plan Terraform configuration in Azure/Azure-LB
-╷
-│ Error: Reference to "each" in context without for_each
-│ 
-│   on main.tf line 110, in resource "azurerm_network_interface_backend_address_pool_association" "lb_backend_association":
-│  110:   backend_address_pool_id = azurerm_lb_backend_address_pool.internal_lb_bepool[each.key].id
-│ 
-│ The "each" object can be used only in "module" or "resource" blocks, and
-│ only when the "for_each" argument is set.
+resource "azurerm_network_interface_backend_address_pool_association" "lb_backend_association" {
+  for_each                 = azurerm_lb_backend_address_pool.internal_lb_bepool
+  network_interface_id     = data.azurerm_network_interface.nic.id  # Assuming a single NIC; adjust if multiple.
+  ip_configuration_name    = "ipconfig1"  # Update this if your NIC uses a different IP configuration name
+  backend_address_pool_id  = each.value.id
+}
