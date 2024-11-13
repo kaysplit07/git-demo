@@ -1,6 +1,10 @@
-resource "azurerm_network_interface_backend_address_pool_association" "lb_backend_association" {
-  for_each                 = { for nic_key, nic in data.azurerm_network_interface.nic : nic_key => nic }
-  network_interface_id     = each.value.id
-  ip_configuration_name    = "ipconfig1"  # Ensure this matches the actual configuration name of your NICs
-  backend_address_pool_id  = azurerm_lb_backend_address_pool.internal_lb_bepool[each.key].id
-}
+╷
+│ Error: Invalid index
+│ 
+│   on main.tf line 134, in resource "azurerm_network_interface_backend_address_pool_association" "lb_backend_association":
+│  134:   backend_address_pool_id  = azurerm_lb_backend_address_pool.internal_lb_bepool[each.key].id
+│     ├────────────────
+│     │ azurerm_lb_backend_address_pool.internal_lb_bepool is object with 1 attribute "1"
+│     │ each.key is "AZUSE-ACRIDV05-nic-01"
+│ 
+│ The given key does not identify an element in this collection value.
