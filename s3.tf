@@ -62,17 +62,17 @@ jobs:
       uses: actions/checkout@v3
     - id: envvars
       name: Set environment variables based on deployment environment
-      run: "\n    if [ \"${{ inputs.environment }}\" = \"prod\" ]; then\n        echo\
-        \ \"BACKEND_STORAGE_ACCOUNT=5471xbpdeus201st1\" >> \"$GITHUB_ENV\"\n     \
-        \   echo \"BACKEND_RESOURCE_GROUP=5471xb-prod-eus2-terra-rg\" >> \"$GITHUB_ENV\"\
-        \n        echo \"TF_VAR_env=prod\" >> \"$GITHUB_ENV\"\n    elif [ \"${{ inputs.environment\
-        \ }}\" = \"uat\" ]; then\n        echo \"BACKEND_STORAGE_ACCOUNT=5471xbuteus201st1\"\
-        \ >> \"$GITHUB_ENV\"\n        echo \"BACKEND_RESOURCE_GROUP=5471xb-uat-eus2-terra-rg\"\
-        \ >> \"$GITHUB_ENV\"\n        echo \"TF_VAR_env=uat\" >> \"$GITHUB_ENV\"\n\
-        \    else\n        echo \"BACKEND_STORAGE_ACCOUNT=5471xbdveus201st1\" >> \"\
-        $GITHUB_ENV\"\n        echo \"BACKEND_RESOURCE_GROUP=5471xb-dev-eus2-terra-rg\"\
-        \ >> \"$GITHUB_ENV\"\n        echo \"TF_VAR_env=dev\" >> \"$GITHUB_ENV\"\n\
-        \    fi\n    "
+      run: |
+          if "${{ inputs.environment }}" = "prod" ]; then
+          echo "BACKEND_STORAGE_ACCOUNT=5471xbpdeus201st1" >> "$GITHUB_ENV"
+          echo "BACKEND_RESOURCE_GROUP=5471xb-prod-eus2-terra-rg" >> "$GITHUB_ENV"
+          echo "TF_VAR_env=prod" >> "$GITHUB_ENV"    elif ["${{ inputs.environment}}" = "uat" ]; then
+          echo "BACKEND_STORAGE_ACCOUNT=5471xbuteus201st1" >> "$GITHUB_ENV"       
+          echo "BACKEND_RESOURCE_GROUP=5471xb-uat-eus2-terra-rg" "$GITHUB_ENV"        
+          echo "TF_VAR_env=uat" >> "$GITHUB_ENV"   else  
+          echo "BACKEND_STORAGE_ACCOUNT=5471xbdveus201st1" >> "$GITHUB_ENV"       
+          echo "BACKEND_RESOURCE_GROUP=5471xb-dev-eus2-terra-rg" >> "$GITHUB_ENV"       
+          echo "TF_VAR_env=dev" >> "$GITHUB_ENV"    fi "
     - name: Select backend file based on environment
       run: "case \"${{ inputs.environment }}\" in\n  dev) cp backend-dev.tf main.tf\
         \ ;;\n  uat) cp backend-uat.tf main.tf ;;\n  prod) cp backend-prod.tf main.tf\
@@ -88,11 +88,7 @@ jobs:
         TF_VAR_sku_name: ${{inputs.sku_name}}
         TF_VAR_subnetname: ${{inputs.subnetname}}
       name: Terraform Initialize - Load Balancer
-      run: "\n        terraform init -backend-config=\"resource_group_name=$BACKEND_RESOURCE_GROUP\"\
-        \                        -backend-config=\"storage_account_name=$BACKEND_STORAGE_ACCOUNT\"\
-        \                        -backend-config=\"container_name=terra-state\"  \
-        \                      -backend-config=\"key=${{ inputs.environment }}-lb-terraform.tfstate\"\
-        \                        -input=false\n        "
+      run: run: terraform init -backend-config="resource_group_name=$BACKEND_RESOURCE_GROUP" -backend-config="storage_account_name=$BACKEND_STORAGE_ACCOUNT" -backend-config="container_name=terra-state" -backend-config="key=${{ inputs.environment }}-lb-terraform.tfstate" -input=false  
       uses: hashicorp/terraform-github-actions@master
       with:
         tf_actions_comment: true
