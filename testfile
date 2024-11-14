@@ -1,5 +1,13 @@
-Run az login --service-principal --username "$ARM_CLIENT_ID" --password "$ARM_CLIENT_SECRET" --tenant "$ARM_TENANT_ID"
-ERROR: Failed to resolve tenant ''.
-
-Error detail: {"error":"invalid_tenant","error_description":"AADSTS90002: Tenant 'v2.0' not found. Check to make sure you have the correct tenant ID and are signing into the correct cloud. Check with your subscription administrator, this may happen if there are no active subscriptions for the tenant. Trace ID: ebdb979b-2f72-4711-b27d-418248520e00 Correlation ID: 47bc6ce2-5b2e-4834-b8f1-e5eec6937c62 Timestamp: 2024-11-14 02:20:57Z","error_codes":[90002],"timestamp":"2024-11-14 02:20:57Z","trace_id":"ebdb979b-2f72-4711-b27d-418248520e00","correlation_id":"47bc6ce2-5b2e-4834-b8f1-e5eec6937c62","error_uri":"https://login.microsoftonline.com/error?code=90002"}
-Error: Process completed with exit code 1.
+Run az login --service-principal --t $ARM_TENANT_ID -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET
+  
+ERROR: argument --tenant/-t: expected one argument
+Examples from AI knowledge base:
+az login --service-principal -u http://azure-cli-2016-08-05-14-31-15 -p VerySecret --tenant contoso.onmicrosoft.com
+Log in with a service principal using client secret. Use -p=secret if the first character of the password is '-'.
+az login --service-principal -u http://azure-cli-2016-08-05-14-31-15 -p ~/mycertfile.pem --tenant contoso.onmicrosoft.com
+Log in with a service principal using client certificate.
+az login -u johndoe@contoso.com -p VerySecret
+Log in with username and password. This doesn't work with Microsoft accounts or accounts that have two-factor authentication enabled. Use -p=secret if the first character of the password is '-'.
+https://aka.ms/cli_ref
+Read more about the command in reference docs
+Error: Process completed with exit code 2.
