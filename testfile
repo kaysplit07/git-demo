@@ -1,12 +1,55 @@
-terraform {
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "~> 3.0"  # Specify the appropriate version you want
-    }
-  }
-}
+name: 'zLoad Balancer (Call)'
+run-name: '${{github.actor}} - Initializing Terraform'
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: true
+    secrets:
+      ARM_CLIENT_ID:
+        required: true
+      ARM_CLIENT_SECRET:
+        required: true
+      ARM_SUBSCRIPTION_ID:
+        required: true
+      ARM_TENANT_ID:
+        required: true
+env:
+  permissions:
+  contents: read
+jobs:
+  terraform-init:
+    name: 'Initialize Terraform'
+    runs-on: ubuntu-latest
+    env:
+      ARM_CLIENT_ID:        ${{secrets.ARM_CLIENT_ID}}
+      ARM_CLIENT_SECRET:    ${{secrets.ARM_CLIENT_SECRET}}
+      ARM_TENANT_ID:        ${{secrets.ARM_TENANT_ID}}
+      ARM_SUBSCRIPTION_ID:  ${{secrets.ARM_SUBSCRIPTION_ID}}
+    steps:
+      - name: 'Checkout'
+        uses: actions/checkout@v3
 
-provider "azurerm" {
-  features {}
-}
+      - name: 'Setup Node.js'
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: 'Setup Terraform'
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: latest
+
+      - name: 'Clean Terraform Cache and Lock Files'
+        run: |
+          rm -rf .terraform
+          rm -f .terraform.lock.hcl
+
+      - name: 'Terraform Initialize'
+        run: |
+          terraform init -backend-config="resource_group_name=your-resource-group" \
+                         -backend-config="storage_account_name=your-storage-account" \
+                         -backend-config="container_name=terraform-state" \
+                         -backend-config="key=${{ inputs.environment }}-lb-terraform.tfstate" \
+                         -input=false
