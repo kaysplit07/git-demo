@@ -60,18 +60,22 @@ jobs:
     steps:
       - name: 'Checkout - Load Balancer'
         uses: actions/checkout@v3
+
       - name: 'Setup Node.js'
         uses: actions/setup-node@v2
         with:
-          node-version: '14'  # Specify the required Node.js version  
+          node-version: '14'
+
       - name: 'Setup Terraform'
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: latest 
+
       - name: 'Clean up Terraform Cache and Lock Files'
         run: |
           rm -rf .terraform
-          rm -f .terraform.lock.hcl     
+          rm -f .terraform.lock.hcl
+
       - id: envvars
         name: Set environment variables based on deployment environment
         run: |
@@ -90,7 +94,7 @@ jobs:
             fi
 
       - name: 'Terraform Initialize - Load Balancer'
-        run: terraform init -upgrade -backend-config="resource_group_name=$BACKEND_RESOURCE_GROUP" -backend-config="storage_account_name=$BACKEND_STORAGE_ACCOUNT" -backend-config="container_name=terraform-state" -backend-config="key=${{ inputs.environment }}-lb-terraform.tfstate" -input=false
+        run: terraform init -backend-config="resource_group_name=$BACKEND_RESOURCE_GROUP" -backend-config="storage_account_name=$BACKEND_STORAGE_ACCOUNT" -backend-config="container_name=terraform-state" -backend-config="key=${{ inputs.environment }}-lb-terraform.tfstate" -input=false
         env:
           TF_VAR_requesttype:              '${{inputs.requestType}}'
           TF_VAR_location:                 '${{inputs.location}}'
@@ -101,70 +105,3 @@ jobs:
           TF_VAR_subnetname:               '${{inputs.subnetname}}'
           TF_VAR_sku_name:                 '${{inputs.sku_name}}'
           TF_VAR_private_ip_address:       '${{inputs.private_ip_address}}'
-      - name: 'Terraform Plan - Load Balancer'
-        if: ${{ inputs.requestType == 'Create (with New RG)' || inputs.requestType == 'Create (with Existing RG)' }}
-        uses: hashicorp/terraform-github-actions@master
-        with:
-          tf_actions_version:     latest
-          tf_actions_subcommand:  'plan'
-          tf_actions_working_dir: ${{ env.ROOT_PATH }}
-          tf_actions_comment:     true
-        env:
-          TF_VAR_requesttype:         '${{inputs.requestType}}'
-          TF_VAR_location:            '${{inputs.location}}'
-          TF_VAR_environment:         '${{inputs.environment}}'
-          TF_VAR_purpose:             '${{inputs.purpose}}'
-          TF_VAR_purpose_rg:          '${{inputs.purposeRG}}'
-          TF_VAR_RGname:              '${{inputs.RGname}}'
-          TF_VAR_subnetname:          '${{inputs.subnetname}}'
-          TF_VAR_sku_name:            '${{inputs.sku_name}}'
-          TF_VAR_private_ip_address:  '${{inputs.private_ip_address}}'
-
-      - name: 'Terraform Apply - Load Balancer'
-        if: ${{ inputs.requestType == 'Create (with New RG)' || inputs.requestType == 'Create (with Existing RG)' }}
-        uses: hashicorp/terraform-github-actions@master
-        with:
-          tf_actions_version:     latest
-          tf_actions_subcommand:  'apply'
-          tf_actions_working_dir: ${{env.ROOT_PATH}}
-          tf_actions_comment:     true
-        env:
-          TF_VAR_requesttype:         '${{inputs.requestType}}'
-          TF_VAR_location:            '${{inputs.location}}'
-          TF_VAR_environment:         '${{inputs.environment}}'
-          TF_VAR_purpose:             '${{inputs.purpose}}'
-          TF_VAR_purpose_rg:          '${{inputs.purposeRG}}'
-          TF_VAR_RGname:              '${{inputs.RGname}}'
-          TF_VAR_subnetname:          '${{inputs.subnetname}}'
-          TF_VAR_sku_name:            '${{inputs.sku_name}}'
-          TF_VAR_private_ip_address:  '${{inputs.private_ip_address}}'
-      - name: 'Terraform Remove - Load Balancer'
-        if: ${{ inputs.requestType == 'Remove' }}
-        uses: hashicorp/terraform-github-actions@master
-        with:
-          tf_actions_version:     latest
-          tf_actions_subcommand:  'destroy'
-          tf_actions_working_dir: ${{env.ROOT_PATH}}
-          tf_actions_comment:     true
-        env:
-          TF_VAR_requesttype:         '${{inputs.requestType}}'
-          TF_VAR_location:            '${{inputs.location}}'
-          TF_VAR_environment:         '${{inputs.environment}}'
-          TF_VAR_purpose:             '${{inputs.purpose}}'
-          TF_VAR_purpose_rg:          '${{inputs.purposeRG}}'
-          TF_VAR_RGname:              '${{inputs.RGname}}'
-          TF_VAR_subnetname:          '${{inputs.subnetname}}'
-          TF_VAR_sku_name:            '${{inputs.sku_name}}'
-          TF_VAR_private_ip_address:  '${{inputs.private_ip_address}}'
-
-
-
-Error: Inconsistent dependency lock file
-│ 
-│ The following dependency selections recorded in the lock file are
-│ inconsistent with the current configuration:
-│   - provider registry.terraform.io/hashicorp/azurerm: required by this configuration but no version is selected
-│ 
-│ To make the initial dependency selections that will initialize the
-│ dependency lock file, run:
-│   terraform init
