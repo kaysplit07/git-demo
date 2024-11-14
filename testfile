@@ -1,13 +1,3 @@
-Run az login --service-principal --t $ARM_TENANT_ID -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET
-  
-ERROR: argument --tenant/-t: expected one argument
-Examples from AI knowledge base:
-az login --service-principal -u http://azure-cli-2016-08-05-14-31-15 -p VerySecret --tenant contoso.onmicrosoft.com
-Log in with a service principal using client secret. Use -p=secret if the first character of the password is '-'.
-az login --service-principal -u http://azure-cli-2016-08-05-14-31-15 -p ~/mycertfile.pem --tenant contoso.onmicrosoft.com
-Log in with a service principal using client certificate.
-az login -u johndoe@contoso.com -p VerySecret
-Log in with username and password. This doesn't work with Microsoft accounts or accounts that have two-factor authentication enabled. Use -p=secret if the first character of the password is '-'.
-https://aka.ms/cli_ref
-Read more about the command in reference docs
-Error: Process completed with exit code 2.
+ERROR: Failed to resolve tenant ''.
+Error detail: {"error":"invalid_tenant","error_description":"AADSTS90002: Tenant 'v2.0' not found. Check to make sure you have the correct tenant ID and are signing into the correct cloud. Check with your subscription administrator, this may happen if there are no active subscriptions for the tenant. Trace ID: 597d8389-cdec-4bc1-992a-4933fcf93b01 Correlation ID: dd0ce4ab-7ab2-458c-ad0f-06911ac2090e Timestamp: 2024-11-14 15:11:45Z","error_codes":[90002],"timestamp":"2024-11-14 15:11:45Z","trace_id":"597d8389-cdec-4bc1-992a-4933fcf93b01","correlation_id":"dd0ce4ab-7ab2-458c-ad0f-06911ac2090e","error_uri":"https://login.microsoftonline.com/error?code=90002"}
+Error: Process completed with exit code 1.
