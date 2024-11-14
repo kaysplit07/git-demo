@@ -1,57 +1,13 @@
-name: 'zLoad Balancer (Call)'
-run-name: '${{github.actor}} - Initializing Terraform'
-on:
-  workflow_call:
-    inputs:
-      environment:
-        type: string
-        required: true
-    secrets:
-      ARM_CLIENT_ID:
-        required: true
-      ARM_CLIENT_SECRET:
-        required: true
-      ARM_SUBSCRIPTION_ID:
-        required: true
-      ARM_TENANT_ID:
-        required: true
-env:
-  permissions:
-  contents: read
-jobs:
-  terraform-init:
-    name: 'Initialize Terraform'
-    runs-on: ubuntu-latest
-    env:
-      ARM_CLIENT_ID:        ${{ secrets.ARM_CLIENT_ID }}
-      ARM_CLIENT_SECRET:    ${{ secrets.ARM_CLIENT_SECRET }}
-      ARM_TENANT_ID:        ${{ secrets.ARM_TENANT_ID }}
-      ARM_SUBSCRIPTION_ID:  ${{ secrets.ARM_SUBSCRIPTION_ID }}
-    steps:
-      - name: 'Checkout'
-        uses: actions/checkout@v3
-
-      - name: 'Setup Node.js'
-        uses: actions/setup-node@v2
-        with:
-          node-version: '14'
-
-      - name: 'Setup Terraform'
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: latest
-
-      - name: 'Authenticate with Azure'
-        run: az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID
-
-      - name: 'Clean Terraform Cache and Lock Files'
-        run: |
-          rm -rf .terraform
-          rm -f .terraform.lock.hcl
-
-      - name: 'Terraform Initialize'
-        run: terraform init -backend-config="resource_group_name=your-resource-group" \
-                         -backend-config="storage_account_name=your-storage-account" \
-                         -backend-config="container_name=terraform-state" \
-                         -backend-config="key=${{ inputs.environment }}-lb-terraform.tfstate" \
-                         -input=false
+Run az login --service-principal -t $ARM_TENANT_ID -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET
+  
+ERROR: argument --tenant/-t: expected one argument
+Examples from AI knowledge base:
+az login --service-principal -u http://azure-cli-2016-08-05-14-31-15 -p VerySecret --tenant contoso.onmicrosoft.com
+Log in with a service principal using client secret. Use -p=secret if the first character of the password is '-'.
+az login --service-principal -u http://azure-cli-2016-08-05-14-31-15 -p ~/mycertfile.pem --tenant contoso.onmicrosoft.com
+Log in with a service principal using client certificate.
+az login -u johndoe@contoso.com -p VerySecret
+Log in with username and password. This doesn't work with Microsoft accounts or accounts that have two-factor authentication enabled. Use -p=secret if the first character of the password is '-'.
+https://aka.ms/cli_ref
+Read more about the command in reference docs
+Error: Process completed with exit code 2.
