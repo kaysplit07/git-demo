@@ -1,12 +1,17 @@
-plan: error: failed to plan Terraform configuration in Azure/Azure-LB
-╷
-│ Error: Inconsistent dependency lock file
-│ 
-│ The following dependency selections recorded in the lock file are
-│ inconsistent with the current configuration:
-│   - provider registry.terraform.io/hashicorp/azurerm: required by this configuration but no version is selected
-│ 
-│ To make the initial dependency selections that will initialize the
-│ dependency lock file, run:
-│   terraform init
-╵
+      - name: 'Clean up Terraform Cache and Lock Files'
+        run: |
+          rm -rf .terraform
+          rm -f .terraform.lock.hcl
+
+      - name: 'Terraform Initialize - Load Balancer'
+        run: terraform init -backend-config="resource_group_name=$BACKEND_RESOURCE_GROUP" -backend-config="storage_account_name=$BACKEND_STORAGE_ACCOUNT" -backend-config="container_name=terra-state" -backend-config="key=${{ inputs.environment }}-lb-terraform.tfstate" -input=false
+        env:
+          TF_VAR_requesttype:              '${{inputs.requestType}}'
+          TF_VAR_location:                 '${{inputs.location}}'
+          TF_VAR_environment:              '${{inputs.environment}}'
+          TF_VAR_purpose:                  '${{inputs.purpose}}'
+          TF_VAR_purpose_rg:               '${{inputs.purposeRG}}'
+          TF_VAR_RGname:                   '${{inputs.RGname}}'
+          TF_VAR_subnetname:               '${{inputs.subnetname}}'
+          TF_VAR_sku_name:                 '${{inputs.sku_name}}'
+          TF_VAR_private_ip_address:       '${{inputs.private_ip_address}}'
