@@ -1,1 +1,5 @@
-az login --service-principal --username "$ARM_CLIENT_ID" --password "$ARM_CLIENT_SECRET" --tenant "$ARM_TENANT_ID"
+Run az login --service-principal --username "$ARM_CLIENT_ID" --password "$ARM_CLIENT_SECRET" --tenant "$ARM_TENANT_ID"
+ERROR: Failed to resolve tenant ''.
+
+Error detail: {"error":"invalid_tenant","error_description":"AADSTS90002: Tenant 'v2.0' not found. Check to make sure you have the correct tenant ID and are signing into the correct cloud. Check with your subscription administrator, this may happen if there are no active subscriptions for the tenant. Trace ID: ebdb979b-2f72-4711-b27d-418248520e00 Correlation ID: 47bc6ce2-5b2e-4834-b8f1-e5eec6937c62 Timestamp: 2024-11-14 02:20:57Z","error_codes":[90002],"timestamp":"2024-11-14 02:20:57Z","trace_id":"ebdb979b-2f72-4711-b27d-418248520e00","correlation_id":"47bc6ce2-5b2e-4834-b8f1-e5eec6937c62","error_uri":"https://login.microsoftonline.com/error?code=90002"}
+Error: Process completed with exit code 1.
