@@ -1,13 +1,1 @@
-Run az login --service-principal -t $ARM_TENANT_ID -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET
-  
-ERROR: argument --tenant/-t: expected one argument
-Examples from AI knowledge base:
-az login --service-principal -u http://azure-cli-2016-08-05-14-31-15 -p VerySecret --tenant contoso.onmicrosoft.com
-Log in with a service principal using client secret. Use -p=secret if the first character of the password is '-'.
-az login --service-principal -u http://azure-cli-2016-08-05-14-31-15 -p ~/mycertfile.pem --tenant contoso.onmicrosoft.com
-Log in with a service principal using client certificate.
-az login -u johndoe@contoso.com -p VerySecret
-Log in with username and password. This doesn't work with Microsoft accounts or accounts that have two-factor authentication enabled. Use -p=secret if the first character of the password is '-'.
-https://aka.ms/cli_ref
-Read more about the command in reference docs
-Error: Process completed with exit code 2.
+az login --service-principal --username "$ARM_CLIENT_ID" --password "$ARM_CLIENT_SECRET" --tenant "$ARM_TENANT_ID"
