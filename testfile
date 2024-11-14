@@ -1,24 +1,97 @@
- terraform init -backend-config="resource_group_name=$BACKEND_RESOURCE_GROUP" -backend-config="storage_account_name=$BACKEND_STORAGE_ACCOUNT" -backend-config="container_name=terra-state" -backend-config="key=DEV-lb-terraform.tfstate" -input=false
-  shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
-  env:
-    permissions: 
-    contents: read
-    ARM_CLIENT_ID: ***
-    ARM_CLIENT_SECRET: ***
-    ARM_TENANT_ID: ***
-    ARM_SUBSCRIPTION_ID: ***
-    ROOT_PATH: Azure/Azure-LB
-    BACKEND_STORAGE_ACCOUNT: 6425dveus2aristb01
-    BACKEND_RESOURCE_GROUP: test-dev-eus2-testing-rg
-    TF_VAR_env: dev
-    TF_VAR_requesttype: Create (with Existing RG)
-    TF_VAR_location: eastus2
-    TF_VAR_environment: DEV
-    TF_VAR_purpose: lbi/04
-    TF_VAR_purpose_rg: sgs
-    TF_VAR_RGname: 6425-dev-eus2-sgs-rg
-    TF_VAR_subnetname: lz6425-dev-eus2-vm-snet-01
-    TF_VAR_sku_name: Standard
-    TF_VAR_private_ip_address: 10.82.58.235
-/home/runner/_work/_temp/44efc021-9340-4bdc-bef1-4438ae9d913d.sh: line 1: terraform: command not found
-Error: Process completed with exit code 127.
+name: 'zLoad Balancer (Call)'
+run-name: '${{github.actor}} - Creating Load Balancer'
+on:
+  workflow_call:
+    inputs:
+      requestType:
+        type: string
+        required: false
+      location:
+        type: string
+        required: true
+      environment:
+        type: string
+        required: true
+      purpose:
+        type: string
+        required: false
+      purposeRG:
+        type: string
+        required: false
+      RGname:
+        type: string
+        required: false
+      subnetname:
+        type: string
+        required: false
+      sku_name:
+        type: string
+        required: false
+      private_ip_address:
+        type: string
+        required: false
+    secrets:
+      ARM_CLIENT_ID:
+        required: true
+      ARM_CLIENT_SECRET:
+        required: true
+      ARM_SUBSCRIPTION_ID:
+        required: true
+      ARM_TENANT_ID:
+        required: true
+env:
+  permissions:
+  contents: read
+jobs:
+  lb-create:
+    name: 'Create Azure Load Balancer'
+    env:
+      ARM_CLIENT_ID:        ${{secrets.ARM_CLIENT_ID}}
+      ARM_CLIENT_SECRET:    ${{secrets.ARM_CLIENT_SECRET}}
+      ARM_TENANT_ID:        ${{secrets.ARM_TENANT_ID}}
+      ARM_SUBSCRIPTION_ID:  ${{secrets.ARM_SUBSCRIPTION_ID}}
+      ROOT_PATH:            'Azure/Azure-LB'
+    runs-on: 
+      group: aks-runners
+    environment: ${{ inputs.environment }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: 'Setup Terraform'
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: latest
+
+      - name: 'Checkout - Load Balancer'
+        uses: actions/checkout@v3
+
+      - id: envvars
+        name: Set environment variables based on deployment environment
+        run: |
+            if [ "${{ inputs.environment }}" = "prod" ]; then
+                echo "BACKEND_STORAGE_ACCOUNT=5471xbpdeus201st1" >> "$GITHUB_ENV"
+                echo "BACKEND_RESOURCE_GROUP=5471xb-prod-eus2-terra-rg" >> "$GITHUB_ENV"
+                echo "TF_VAR_env=prod" >> "$GITHUB_ENV"
+            elif [ "${{ inputs.environment }}" = "uat" ]; then
+                echo "BACKEND_STORAGE_ACCOUNT=5471xbuteus201st1" >> "$GITHUB_ENV"
+                echo "BACKEND_RESOURCE_GROUP=5471xb-uat-eus2-terra-rg" >> "$GITHUB_ENV"
+                echo "TF_VAR_env=uat" >> "$GITHUB_ENV"
+            else
+                echo "BACKEND_STORAGE_ACCOUNT=6425dveus2aristb01" >> "$GITHUB_ENV"
+                echo "BACKEND_RESOURCE_GROUP=test-dev-eus2-testing-rg" >> "$GITHUB_ENV"
+                echo "TF_VAR_env=dev" >> "$GITHUB_ENV"
+            fi
+
+      - name: 'Terraform Initialize - Load Balancer'
+        run: terraform init -backend-config="resource_group_name=$BACKEND_RESOURCE_GROUP" -backend-config="storage_account_name=$BACKEND_STORAGE_ACCOUNT" -backend-config="container_name=terra-state" -backend-config="key=${{ inputs.environment }}-lb-terraform.tfstate" -input=false
+        env:
+          TF_VAR_requesttype:              '${{inputs.requestType}}'
+          TF_VAR_location:                 '${{inputs.location}}'
+          TF_VAR_environment:              '${{inputs.environment}}'
+          TF_VAR_purpose:                  '${{inputs.purpose}}'
+          TF_VAR_purpose_rg:               '${{inputs.purposeRG}}'
+          TF_VAR_RGname:                   '${{inputs.RGname}}'
+          TF_VAR_subnetname:               '${{inputs.subnetname}}'
+          TF_VAR_sku_name:                 '${{inputs.sku_name}}'
+          TF_VAR_private_ip_address:       '${{inputs.private_ip_address}}'
