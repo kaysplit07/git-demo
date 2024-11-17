@@ -1,3 +1,13 @@
-ERROR: Failed to resolve tenant ''.
-Error detail: {"error":"invalid_tenant","error_description":"AADSTS90002: Tenant 'v2.0' not found. Check to make sure you have the correct tenant ID and are signing into the correct cloud. Check with your subscription administrator, this may happen if there are no active subscriptions for the tenant. Trace ID: 597d8389-cdec-4bc1-992a-4933fcf93b01 Correlation ID: dd0ce4ab-7ab2-458c-ad0f-06911ac2090e Timestamp: 2024-11-14 15:11:45Z","error_codes":[90002],"timestamp":"2024-11-14 15:11:45Z","trace_id":"597d8389-cdec-4bc1-992a-4933fcf93b01","correlation_id":"dd0ce4ab-7ab2-458c-ad0f-06911ac2090e","error_uri":"https://login.microsoftonline.com/error?code=90002"}
-Error: Process completed with exit code 1.
+resource "azurerm_network_interface_backend_address_pool_association" "lb_backend_association" {
+  for_each = {
+    for idx, pool in azurerm_lb_backend_address_pool.internal_lb_bepool : idx => {
+      pool_id = pool.id
+      nic_id  = data.azurerm_network_interface.nic[idx].id
+      vm_name = local.vm_names_list[idx]
+    } if idx < length(local.vm_names_list) # Ensure we don't exceed vm_names_list length
+  }
+
+  network_interface_id    = each.value.nic_id
+  ip_configuration_name   = join("-", [each.value.vm_name, "nic1_config"])
+  backend_address_pool_id = each.value.pool_id
+}
