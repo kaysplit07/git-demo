@@ -77,24 +77,14 @@ variable "purpose" {
   type        = string
 }
 
-variable "resource_group_name" {
-  description = "Resource group name for Terraform backend"
-  type        = string
-}
+# variable "nic_name" {
+#   type        = string
+#   description = "Name of the network interface (NIC) to associate with the load balancer."
+#   default = "AZUSE-ACRIDV05-nic-01"
+# }
 
-variable "storage_account_name" {
-  description = "Storage account name for Terraform backend"
-  type        = string
-}
-
-variable "resource_type" {
-  description = "Type of resource for organizing state files"
-  type        = string
-  default     = "loadbalancer"
-}
-
-variable "resource_name" {
-  description = "Dynamically generated resource name based on naming standards"
-  type        = string
-  default     = join("-", ["ari", local.naming.environment, local.env_location.locations_abbreviation, local.purpose_rg, "lbi", local.sequence])
+variable "vm_name" {
+  type = string
+  description = "NAme pf VM for for NIC IP configuration."
+  default ="AZUSE-ACRIDV05"
 }
