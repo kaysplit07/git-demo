@@ -2,18 +2,26 @@ provider "azurerm" {
   features {}
 }
 
-#   terraform {
-#   backend "azurerm" {
-#     resource_group_name   = var.resource_group_name
-#     storage_account_name  = var.storage_account_name
-#     container_name        = "terraform-state"
-#     key                   = "${var.resource_type}/${var.resource_name}.tfstate"
-#   }
-# }
+terraform {
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "=3.100.0" 
+    }
+    
+  }
+  backend "azurerm" {}
+}
 
 data "azurerm_subscription" "current" {}  # Read the current subscription info
 
 data "azurerm_client_config" "clientconfig" {}  # Read the current client config
+
+data "azurerm_network_interface" "nic" {
+  name                = join("-", [var.vm_name, "nic-01" ])
+  resource_group_name = join("-", [local.naming.bu, local.naming.environment, local.env_location.locations_abbreviation, local.purpose, "rg"])
+}
+
 
 locals {
   get_data = csvdecode(file("../parameters.csv"))
@@ -76,10 +84,6 @@ output "subnet_id" {
   sensitive  = true
 }
 
-output "backend_address_pool_ids" {
-  description = "Map of backend address pool IDs"
-  value = { for key, bap in azurerm_lb_backend_address_pool.internal_lb_bepool : key => bap.id }
-}
 # Azure Load Balancer Resource
 resource "azurerm_lb" "internal_lb" {
   for_each            = { for inst in local.get_data : inst.unique_id => inst }
@@ -102,6 +106,14 @@ resource "azurerm_lb_backend_address_pool" "internal_lb_bepool" {
   loadbalancer_id = azurerm_lb.internal_lb[each.key].id
   name            = "internal-${local.purpose_rg}-server-bepool"
 }
+
+resource "azurerm_network_interface_backend_address_pool_association" "lb_backend_association" {
+  for_each                 = azurerm_lb_backend_address_pool.internal_lb_bepool
+  network_interface_id     = data.azurerm_network_interface.nic.id  # Assuming a single NIC; adjust if multiple.
+  ip_configuration_name    =  join("-", [var.vm_name, "nic1_config" ]) #"AZUSE-ACRIDV05-nic1_config"  # Update this if your NIC uses a different IP configuration name
+  backend_address_pool_id  = each.value.id
+}
+
 # Load Balancer Probe
 resource "azurerm_lb_probe" "tcp_probe" {
   for_each            = azurerm_lb.internal_lb
