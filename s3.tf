@@ -103,4 +103,11 @@ jobs:
       requesttype: '${{ inputs.requesttype }}'
       environment: '${{ inputs.environment }}'
       location: '${{ inputs.location }}'
-     
+      sku_name: '${{ inputs.sku_name }}'
+      purpose: '${{ inputs.purpose }}'
+      RGname: '${{ inputs.RGname }}'
+      purposeRG: '${{ inputs.purposeRG }}'
+      subnetname: '${{ inputs.subnetname }}'
+      private_ip_address: '${{ inputs.private_ip_address }}'
+      vm_list: >
+        [{"vm_name": "VM1", "nic_name": "NIC1"}, {"vm_name": "VM2", "nic_name": "NIC2"}]
