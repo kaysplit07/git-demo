@@ -76,7 +76,7 @@ jobs:
       purpose: ${{ inputs.purposeRG }}
 
   load_balancer:
-    if: ${{ !inputs.vm_list && (inputs.requestType == 'Create (with New RG)' || inputs.requestType == 'Create (with Existing RG)') }}
+    if: ${{ inputs.vm_list && (inputs.requesttype == 'Create (with New RG)' || inputs.requesttype == 'Create (with Existing RG)') }}
     name: 'Load Balancer ${{ inputs.purpose }}'
     uses: ./.github/workflows/LBCreate.yml
     needs: resource_group
