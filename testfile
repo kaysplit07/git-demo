@@ -1,8 +1,38 @@
-│ Error: Invalid index
-│ 
-│   on main.tf line 122, in resource "azurerm_network_interface_backend_address_pool_association" "lb_backend_association":
-│  122:   backend_address_pool_id = azurerm_lb_backend_address_pool.internal_lb_bepool[each.key].id
-│     ├────────────────
-│     │ azurerm_lb_backend_address_pool.internal_lb_bepool is object with 1 attribute "1"
-│     │ each.key is "AZUSE-ACRIDV05"
-│ 
+output "backend_address_pool_keys" {
+  value = keys(azurerm_lb_backend_address_pool.internal_lb_bepool)
+}
+
+
+
+resource "azurerm_network_interface_backend_address_pool_association" "lb_backend_association" {
+  for_each = {
+    for nic_key, nic in data.azurerm_network_interface.nic :
+    nic_key => {
+      nic_id               = nic.id
+      ip_configuration_name = "ipconfig1"
+      lb_key               = "1"  # Replace "1" with the correct key from the backend pool output
+    }
+  }
+
+  network_interface_id    = each.value.nic_id
+  ip_configuration_name   = each.value.ip_configuration_name
+  backend_address_pool_id = azurerm_lb_backend_address_pool.internal_lb_bepool[each.value.lb_key].id
+}
+
+
+
+
+resource "azurerm_network_interface_backend_address_pool_association" "lb_backend_association" {
+  for_each = {
+    for nic_key, nic in data.azurerm_network_interface.nic :
+    nic_key => {
+      nic_id               = nic.id
+      ip_configuration_name = "ipconfig1"
+      lb_key               = lookup(var.backend_pool_mapping, nic_key, null)
+    }
+  }
+
+  network_interface_id    = each.value.nic_id
+  ip_configuration_name   = each.value.ip_configuration_name
+  backend_address_pool_id = azurerm_lb_backend_address_pool.internal_lb_bepool[each.value.lb_key].id
+}
