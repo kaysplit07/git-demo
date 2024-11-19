@@ -1,5 +1,73 @@
+1. Issue: Double single quotes in vm_list default value
+Your default value for vm_list contains a syntax error:
+
+yaml
+Copy code
+default: '[{"vm_name": "VM1", "nic_name": "NIC1"}, {"vm_name": "VM2", "nic_name": "NIC2"}]''
+Fix
+Remove the extra single quote at the end:
+
+yaml
+Copy code
+default: '[{"vm_name": "VM1", "nic_name": "NIC1"}, {"vm_name": "VM2", "nic_name": "NIC2"}]'
+2. Issue: Invalid if condition syntax
+The if condition syntax has inconsistencies. For example:
+
+yaml
+Copy code
+if: ${{ !inputs.vm_list && (inputs.requestType == 'Create (with New RG)' || inputs.requestType == 'Create (with Existing RG)') }}
+This syntax is invalid due to incorrect capitalization (requestType should be lowercase requesttype) and possible logic issues.
+
+Fix
+Use consistent casing and correct the logic:
+
+yaml
+Copy code
+if: ${{ !inputs.vm_list && (inputs.requesttype == 'Create (with New RG)' || inputs.requesttype == 'Create (with Existing RG)') }}
+3. Issue: Misuse of github.event.inputs
+In the if condition:
+
+yaml
+Copy code
+if: (github.event.inputs.requesttype == 'Create (with Existing RG)')
+This is invalid in the workflow_dispatch context. Instead, use inputs.requesttype.
+
+Fix
+Change github.event.inputs.requesttype to inputs.requesttype:
+
+yaml
+Copy code
+if: ${{ inputs.requesttype == 'Create (with Existing RG)' }}
+4. Issue: Input variables not being passed correctly
+In the with block, you're passing vm_list and other inputs using string literals. This can lead to JSON parsing errors or type mismatches.
+
+Fix
+Pass vm_list directly as an input without wrapping it in additional quotes:
+
+yaml
+Copy code
+with:
+  vm_list: ${{ inputs.vm_list }}
+5. Issue: Default vm_list value type mismatch
+The default value for vm_list in the inputs section is a string representation of a JSON array. This might cause type mismatch issues if the consuming workflow expects a list.
+
+Fix
+Ensure vm_list is parsed into a proper list in the consuming workflow. In your lbcreate.yml file, add a step to parse the JSON string into a list.
+
+Example in lbcreate.yml:
+
+yaml
+Copy code
+- name: Parse vm_list
+  id: parse_vm_list
+  run: echo "TF_VAR_vm_list=$(echo '${{ inputs.vm_list }}' | jq -c '.')" >> $GITHUB_ENV
+Final Workflow After Fixes
+Here’s your updated Deploy Load Balancer workflow:
+
+yaml
+Copy code
 name: 'Deploy Load Balancer'
-run-name: 'Load Balancer - ${{inputs.environment}} purpose: ${{inputs.purpose}} : ${{inputs.requesttype}}'
+run-name: 'Load Balancer - ${{ inputs.environment }} purpose: ${{ inputs.purpose }} : ${{ inputs.requesttype }}'
 on:
   workflow_dispatch:
     inputs:
@@ -8,9 +76,9 @@ on:
         required: true
         description: Request Type
         options:
-            - Create (with New RG)
-            - Create (with Existing RG)
-            - Remove
+          - Create (with New RG)
+          - Create (with Existing RG)
+          - Remove
         default: "Create (with New RG)"
       environment:
         type: choice
@@ -26,7 +94,6 @@ on:
         required: true
         description: Deployment Location
         options:
-          - Select the location
           - eastus2
           - uksouth
           - centralus
@@ -44,87 +111,82 @@ on:
         required: true
         description: Purpose of the Load Balancer
       RGname:
-          type: string
-          required: false
+        type: string
+        required: false
       purposeRG:
         type: string
         required: true
-        description: Resource Group Purpose.......... Hyphen designate an existing RG
+        description: Resource Group Purpose
       subnetname:
         type: string
         required: true
-        description: Subnet name for Load Balancer.
+        description: Subnet name for Load Balancer
       private_ip_address:
         type: string
         required: false
-        description: Private IP address for Load Balancer frontend configuration.
+        description: Private IP address for Load Balancer frontend configuration
       vm_list:
-        description: "List of VM names for NIC IP configuration"
+        type: string
         required: false
-        default: '[{"vm_name": "VM1", "nic_name": "NIC1"}, {"vm_name": "VM2", "nic_name": "NIC2"}]''
+        default: '[{"vm_name": "VM1", "nic_name": "NIC1"}, {"vm_name": "VM2", "nic_name": "NIC2"}]'
+
 jobs:
   resource_group:
-    if: ${{ !inputs.vm_list && (inputs.requestType == 'Create (with New RG)' || inputs.requestType == 'Create (with Existing RG)') }}
-    name: 'Resource Group ${{inputs.purposeRG}}'
+    if: ${{ inputs.requesttype == 'Create (with New RG)' }}
+    name: 'Resource Group ${{ inputs.purposeRG }}'
     uses: ./.github/workflows/CreateResourceGroup.yml
     secrets: inherit
     with:
-      name:                 'resource-group'
-      subscription:         'SNow Input'
-      environment:          '${{inputs.environment}}' 
-      location:             '${{inputs.location}}' 
-      purpose:              '${{inputs.purposeRG}}'
-  
-  load_balancer_new_rg:
-    if: ${{ !inputs.vm_list && (inputs.requestType == 'Create (with New RG)' || inputs.requestType == 'Create (with Existing RG)') }}
-    name: 'Load Balancer ${{inputs.purpose}}'
+      name: 'resource-group'
+      subscription: 'SNow Input'
+      environment: ${{ inputs.environment }}
+      location: ${{ inputs.location }}
+      purpose: ${{ inputs.purposeRG }}
+
+  load_balancer:
+    if: ${{ inputs.requesttype != 'Remove' }}
+    name: 'Load Balancer ${{ inputs.purpose }}'
     uses: ./.github/workflows/LBCreate.yml
     needs: resource_group
     secrets: inherit
     with:
-      requesttype:               '${{inputs.requesttype}}'
-      environment:               '${{inputs.environment}}'
-      location:                  '${{inputs.location}}'
-      sku_name:                  '${{inputs.sku_name}}'
-      purpose:                   '${{inputs.purpose}}'
-      RGname:                    '${{inputs.RGname}}'
-      purposeRG:                 '${{inputs.purposeRG}}'
-      subnetname:                '${{inputs.subnetname}}'
-      private_ip_address:        '${{inputs.private_ip_address}}'
-     # vm_names:                  '${{inputs.vm_names}}'
-     vm_list: '[{"vm_name": "VM1", "nic_name": "NIC1"}, {"vm_name": "VM2", "nic_name": "NIC2"}]'
-  load_balancer_existing_rg:
-    if: (github.event.inputs.requesttype == 'Create (with Existing RG)')
-    name: 'Load Balancer ${{inputs.purpose}}'
+      requesttype: ${{ inputs.requesttype }}
+      environment: ${{ inputs.environment }}
+      location: ${{ inputs.location }}
+      sku_name: ${{ inputs.sku_name }}
+      purpose: ${{ inputs.purpose }}
+      RGname: ${{ inputs.RGname }}
+      purposeRG: ${{ inputs.purposeRG }}
+      subnetname: ${{ inputs.subnetname }}
+      private_ip_address: ${{ inputs.private_ip_address }}
+      vm_list: ${{ inputs.vm_list }}
+
+  remove_load_balancer:
+    if: ${{ inputs.requesttype == 'Remove' }}
+    name: 'Remove Load Balancer ${{ inputs.purpose }}'
     uses: ./.github/workflows/LBCreate.yml
     secrets: inherit
     with:
-      requesttype:               '${{inputs.requesttype}}'
-      environment:               '${{inputs.environment}}'
-      location:                  '${{inputs.location}}'
-      sku_name:                  '${{inputs.sku_name}}'
-      purpose:                   '${{inputs.purpose}}'
-      purposeRG:                 '${{inputs.purposeRG}}'
-      subnetname:                '${{inputs.subnetname}}'
-      RGname:                    '${{inputs.RGname}}'
-      private_ip_address:        '${{inputs.private_ip_address}}'
-      #vm_names:                  '${{inputs.vm_names}}'
-      vm_list: '[{"vm_name": "VM1", "nic_name": "NIC1"}, {"vm_name": "VM2", "nic_name": "NIC2"}]'
-  
-  load_balancer_remove:
-    if: (github.event.inputs.requesttype == 'Remove')
-    name: 'Maintain Load Balancer ${{inputs.purpose}}'
-    uses: ./.github/workflows/LBCreate.yml
-    secrets: inherit
-    with:
-      requesttype:               '${{inputs.requesttype}}'
-      environment:               '${{inputs.environment}}'
-      location:                  '${{inputs.location}}'
-      sku_name:                  '${{inputs.sku_name}}'
-      purpose:                   '${{inputs.purpose}}'
-      purposeRG:                 '${{inputs.purposeRG}}'
-      RGname:                    '${{inputs.RGname}}'
-      subnetname:                '${{inputs.subnetname}}'
-      private_ip_address:        '${{inputs.private_ip_address}}'
-      #vm_names:                  '${{inputs.vm_names}}'
-      vm_list: '[{"vm_name": "VM1", "nic_name": "NIC1"}, {"vm_name": "VM2", "nic_name": "NIC2"}]'
+      requesttype: ${{ inputs.requesttype }}
+      environment: ${{ inputs.environment }}
+      location: ${{ inputs.location }}
+      sku_name: ${{ inputs.sku_name }}
+      purpose: ${{ inputs.purpose }}
+      RGname: ${{ inputs.RGname }}
+      purposeRG: ${{ inputs.purposeRG }}
+      subnetname: ${{ inputs.subnetname }}
+      private_ip_address: ${{ inputs.private_ip_address }}
+      vm_list: ${{ inputs.vm_list }}
+This workflow ensures correct handling of inputs, valid if conditions, and proper vm_list parsing. Let me know if further refinements are needed!
+
+
+
+
+
+
+
+
+
+
+
+
