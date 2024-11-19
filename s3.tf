@@ -1,113 +1,243 @@
-name: 'Deploy Load Balancer'
-run-name: 'Load Balancer - ${{ inputs.environment }} Purpose: ${{ inputs.purpose }} : ${{ inputs.requesttype }}'
-on:
-  workflow_dispatch:
-    inputs:
-      requesttype:
-        type: choice
-        required: true
-        description: Request Type
-        options:
-          - Create (with New RG)
-          - Create (with Existing RG)
-          - Remove
-        default: "Create (with New RG)"
-      environment:
-        type: choice
-        required: true
-        description: Environment
-        options:
-          - DEV
-          - UAT
-          - QA
-          - PROD
-      location:
-        type: choice
-        required: true
-        description: Deployment Location
-        options:
-          - Select the location
-          - eastus2
-          - uksouth
-          - centralus
-          - ukwest
-      sku_name:
-        type: choice
-        required: false
-        description: SKU for Load Balancer
-        options:
-          - Standard
-          - Basic
-        default: "Standard"
-      purpose:
-        type: string
-        required: true
-        description: Purpose of the Load Balancer
-      RGname:
-        type: string
-        required: false
-      purposeRG:
-        type: string
-        required: true
-        description: Resource Group Purpose (hyphen designates an existing RG)
-      subnetname:
-        type: string
-        required: true
-        description: Subnet name for Load Balancer
-      private_ip_address:
-        type: string
-        required: false
-        description: Private IP address for Load Balancer frontend configuration
-      vm_list:
-        type: string
-        required: false
-        description: "List of VMs for NIC IP configuration (as JSON)"
-jobs:
-  resource_group:
-    if: ${{ inputs.requesttype == 'Create (with New RG)' }}
-    name: 'Resource Group ${{ inputs.purposeRG }}'
-    uses: ./.github/workflows/CreateResourceGroup.yml
-    secrets: inherit
-    with:
-      name: 'resource-group'
-      subscription: 'Subscription Input'
-      environment: '${{ inputs.environment }}'
-      location: '${{ inputs.location }}'
-      purpose: '${{ inputs.purposeRG }}'
+provider "azurerm" {
+  features {}
+}
 
-  load_balancer:
-    if: ${{ inputs.requesttype != 'Remove' }}
-    name: 'Load Balancer ${{ inputs.purpose }}'
-    uses: ./.github/workflows/LBCreate.yml
-    needs: resource_group
-    secrets: inherit
-    with:
-      requesttype: '${{ inputs.requesttype }}'
-      environment: '${{ inputs.environment }}'
-      location: '${{ inputs.location }}'
-      sku_name: '${{ inputs.sku_name }}'
-      purpose: '${{ inputs.purpose }}'
-      RGname: '${{ inputs.RGname }}'
-      purposeRG: '${{ inputs.purposeRG }}'
-      subnetname: '${{ inputs.subnetname }}'
-      private_ip_address: '${{ inputs.private_ip_address }}'
-      vm_list: >
-        [{"vm_name": "VM1", "nic_name": "NIC1"}, {"vm_name": "VM2", "nic_name": "NIC2"}]
+terraform {
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "=3.100.0" 
+    }
+    
+  }
+  backend "azurerm" {}
+}
 
-  load_balancer_remove:
-    if: ${{ inputs.requesttype == 'Remove' }}
-    name: 'Remove Load Balancer ${{ inputs.purpose }}'
-    uses: ./.github/workflows/LBCreate.yml
-    secrets: inherit
-    with:
-      requesttype: '${{ inputs.requesttype }}'
-      environment: '${{ inputs.environment }}'
-      location: '${{ inputs.location }}'
-      sku_name: '${{ inputs.sku_name }}'
-      purpose: '${{ inputs.purpose }}'
-      RGname: '${{ inputs.RGname }}'
-      purposeRG: '${{ inputs.purposeRG }}'
-      subnetname: '${{ inputs.subnetname }}'
-      private_ip_address: '${{ inputs.private_ip_address }}'
-      vm_list: >
-        [{"vm_name": "VM1", "nic_name": "NIC1"}, {"vm_name": "VM2", "nic_name": "NIC2"}]
+data "azurerm_subscription" "current" {}  # Read the current subscription info
+
+data "azurerm_client_config" "clientconfig" {}  # Read the current client config
+
+data "azurerm_network_interface" "nic" {
+  for_each = { for idx, name in var.vm_names : idx => name }
+  name                = join("-", [each.value, "nic-01"])
+  resource_group_name = join("-", [local.naming.bu, local.naming.environment, local.env_location.locations_abbreviation, local.purpose, "rg"])
+}
+
+
+locals {
+  get_data = csvdecode(file("../parameters.csv"))
+  # Define data for naming standards
+  #vm_names_list = var.vm_names != [] ? var.vm_names : split(",", var.vm_names[0])
+  vm_names_list = can(length(var.vm_names)) ? var.vm_names:[var.vm_names]
+  naming = {
+    bu                = lower(split("-", data.azurerm_subscription.current.display_name)[1])  # Read app/bu from the subscription data block
+    environment       = lower(split("-", data.azurerm_subscription.current.display_name)[2])  # Read environment from subscription data block
+    locations         = var.location
+    nn                = lower(split("-", data.azurerm_subscription.current.display_name)[3])
+    subscription_name = data.azurerm_subscription.current.display_name
+    subscription_id   = data.azurerm_subscription.current.id
+  }
+  env_location = {
+    env_abbreviation       = var.environment_map[local.naming.environment]
+    locations_abbreviation = var.location_map[local.naming.locations]
+  }
+
+  # Extract the full purpose (including sequence) from RGname or var.purpose
+  purpose_full = var.RGname != "" ? lower(split("-", var.RGname)[3]) : var.purpose
+
+  # Split the purpose_full into purpose and sequence
+  purpose_parts = split("/", local.purpose_full)
+
+  # Assign purpose and sequence, defaulting sequence to "01" if not provided
+  purpose    = local.purpose_parts[0]
+  sequence   = length(local.purpose_parts) > 1 ? local.purpose_parts[1] : "01"
+  purpose_rg = local.purpose
+}
+
+data "azurerm_resource_group" "rg" {
+  for_each = { for inst in local.get_data : inst.unique_id => inst }
+  name     = join("-", [local.naming.bu, local.naming.environment, local.env_location.locations_abbreviation, local.purpose, "rg"])
+}
+
+output "resource_group_name" {
+  value = data.azurerm_resource_group.rg
+}
+
+data "azurerm_virtual_network" "vnet" {
+  for_each = { for index, inst in local.get_data : index => inst }
+   name = (lookup(each.value, "vnet_name", null) != null && lookup(each.value, "vnet_name", "") != "") ? each.value.vnet_name : join("-", [local.naming.bu, local.naming.environment, local.env_location.locations_abbreviation, "vnet", local.naming.nn])
+   resource_group_name  = (lookup(each.value, "vnet_resource_group", null) != null && lookup(each.value, "vnet_resource_group", "") != "") ? each.value.vnet_resource_group : join("-", [local.naming.bu, local.naming.environment, local.env_location.locations_abbreviation, "spokenetwork-rg"])
+  
+}
+
+output "virtual_network_id" {
+  value      = data.azurerm_virtual_network.vnet
+  sensitive  = true
+}
+
+data "azurerm_subnet" "subnet" {
+  for_each = { for index, inst in local.get_data : index => inst }
+  name                 = (lookup(each.value, "subnet_name", null) != null && lookup(each.value, "subnet_name", "") != "") ? each.value.subnet_name : var.subnetname //lz<app>-<env>-<region>-<purpose>-snet-<nn>
+  virtual_network_name = data.azurerm_virtual_network.vnet[each.key].name
+  resource_group_name  = (lookup(each.value, "vnet_resource_group", null) != null && lookup(each.value, "vnet_resource_group", "") != "") ? each.value.vnet_resource_group : join("-", [local.naming.bu, local.naming.environment, local.env_location.locations_abbreviation, "spokenetwork-rg"])
+}
+
+output "subnet_id" {
+  value      = data.azurerm_subnet.subnet
+  sensitive  = true
+}
+
+# Azure Load Balancer Resource
+resource "azurerm_lb" "internal_lb" {
+  for_each            = { for inst in local.get_data : inst.unique_id => inst }
+  name                = join("-", ["ari", local.naming.environment, local.env_location.locations_abbreviation, local.purpose_rg, "lbi", local.sequence])
+  location            = var.location
+  resource_group_name = data.azurerm_resource_group.rg[each.key].name
+  sku                 = lookup(each.value, "sku_name", var.sku_name)
+
+  frontend_ip_configuration {
+    name                          = "internal-${local.purpose_rg}-server-feip"
+    subnet_id                     = data.azurerm_subnet.subnet["0"].id
+    private_ip_address            = var.private_ip_address  # Use the variable
+    private_ip_address_allocation = "Static"
+  }
+}
+
+# Define Backend Address Pool
+resource "azurerm_lb_backend_address_pool" "internal_lb_bepool" {
+  for_each        = azurerm_lb.internal_lb
+  loadbalancer_id = azurerm_lb.internal_lb[each.key].id
+  name            = "internal-${local.purpose_rg}-server-bepool"
+}
+
+# resource "azurerm_network_interface_backend_address_pool_association" "lb_backend_association" {
+#   for_each = {
+#     for idx, pool in azurerm_lb_backend_address_pool.internal_lb_bepool : idx => {
+#       pool_id = pool.id
+#       nic_id  = data.azurerm_network_interface.nic[idx].id
+#       vm_name = local.vm_names_list[idx]
+#     }
+#   }
+
+#   network_interface_id    = each.value.nic_id
+#   ip_configuration_name   = join("-", [each.value.vm_name, "nic1_config"])
+#   backend_address_pool_id = each.value.pool_id
+# }
+
+resource "azurerm_network_interface_backend_address_pool_association" "lb_associations" {
+  for_each = { for vm in var.vm_list : vm.vm_name => vm }
+  network_interface_id = azurerm_network_interface.nic[each.key].id
+  backend_address_pool_id = azurerm_lb_backend_address_pool.internal_lb_bepool.id
+}
+
+
+# Load Balancer Probe
+resource "azurerm_lb_probe" "tcp_probe" {
+  for_each            = azurerm_lb.internal_lb
+  name                = "internal-${local.purpose_rg}-server-tcp-probe"
+  loadbalancer_id     = azurerm_lb.internal_lb[each.key].id
+  protocol            = "Tcp"
+  port                = 20005
+  interval_in_seconds = 5
+  number_of_probes    = 5
+}
+
+# Load Balancer TCP Rule
+resource "azurerm_lb_rule" "tcp_rule" {
+  for_each                       = azurerm_lb.internal_lb
+  name                           = "internal-${local.purpose_rg}-server-tcp-lbrule"
+  loadbalancer_id                = azurerm_lb.internal_lb[each.key].id
+  protocol                       = "Tcp"
+  frontend_port                  = 20000
+  backend_port                   = 20000
+  frontend_ip_configuration_name = azurerm_lb.internal_lb[each.key].frontend_ip_configuration[0].name
+  backend_address_pool_ids       = [azurerm_lb_backend_address_pool.internal_lb_bepool[each.key].id]
+  idle_timeout_in_minutes        = 5
+  enable_floating_ip             = false
+  enable_tcp_reset               = false
+  disable_outbound_snat          = false
+  probe_id                       = azurerm_lb_probe.tcp_probe[each.key].id
+}
+
+# Load Balancer HTTPS Rule
+resource "azurerm_lb_rule" "https_rule" {
+  for_each                       = azurerm_lb.internal_lb
+  name                           = "internal-${local.purpose_rg}-server-https-lbrule"
+  loadbalancer_id                = azurerm_lb.internal_lb[each.key].id
+  protocol                       = "Tcp"
+  frontend_port                  = 443
+  backend_port                   = 443
+  frontend_ip_configuration_name = azurerm_lb.internal_lb[each.key].frontend_ip_configuration[0].name
+  backend_address_pool_ids       = [azurerm_lb_backend_address_pool.internal_lb_bepool[each.key].id]
+  idle_timeout_in_minutes        = 4
+  enable_floating_ip             = false
+  enable_tcp_reset               = false
+  disable_outbound_snat          = false
+  probe_id                       = azurerm_lb_probe.tcp_probe[each.key].id
+}
+
+
+
+
+│ Error: Reference to undeclared input variable
+│ 
+│   on main.tf line 21, in data "azurerm_network_interface" "nic":
+│   21:   for_each = { for idx, name in var.vm_names : idx => name }
+│ 
+│ An input variable with the name "vm_names" has not been declared. This
+│ variable can be declared with a variable "vm_names" {} block.
+╵
+╷
+│ Error: Reference to undeclared input variable
+│ 
+│   on main.tf line 31, in locals:
+│   31:   vm_names_list = can(length(var.vm_names)) ? var.vm_names:[var.vm_names]
+│ 
+│ An input variable with the name "vm_names" has not been declared. This
+│ variable can be declared with a variable "vm_names" {} block.
+╵
+╷
+│ Error: Reference to undeclared input variable
+│ 
+│   on main.tf line 31, in locals:
+│   31:   vm_names_list = can(length(var.vm_names)) ? var.vm_names:[var.vm_names]
+│ 
+│ An input variable with the name "vm_names" has not been declared. This
+│ variable can be declared with a variable "vm_names" {} block.
+╵
+╷
+│ Error: Reference to undeclared input variable
+│ 
+│   on main.tf line 31, in locals:
+│   31:   vm_names_list = can(length(var.vm_names)) ? var.vm_names:[var.vm_names]
+│ 
+│ An input variable with the name "vm_names" has not been declared. This
+│ variable can be declared with a variable "vm_names" {} block.
+╵
+╷
+│ Error: Reference to undeclared resource
+│ 
+│   on main.tf line 129, in resource "azurerm_network_interface_backend_address_pool_association" "lb_associations":
+│  129:   network_interface_id = azurerm_network_interface.nic[each.key].id
+│ 
+│ A managed resource "azurerm_network_interface" "nic" has not been declared
+│ in the root module.
+│ 
+│ Did you mean the data resource data.azurerm_network_interface.nic?
+╵
+╷
+│ Error: Missing resource instance key
+│ 
+│   on main.tf line 130, in resource "azurerm_network_interface_backend_address_pool_association" "lb_associations":
+│  130:   backend_address_pool_id = azurerm_lb_backend_address_pool.internal_lb_bepool.id
+│ 
+│ Because azurerm_lb_backend_address_pool.internal_lb_bepool has "for_each"
+│ set, its attributes must be accessed on specific instances.
+│ 
+│ For example, to correlate with indices of a referring resource, use:
+│     azurerm_lb_backend_address_pool.internal_lb_bepool[each.key]
+╵
+Error: Terraform exited with code 1.
+Error: Process completed with exit code 1.
+0s
+0s
