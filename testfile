@@ -1,13 +1,59 @@
-resource "azurerm_network_interface_backend_address_pool_association" "lb_backend_association" {
-  for_each = {
-    for idx, pool in azurerm_lb_backend_address_pool.internal_lb_bepool : idx => {
-      pool_id = pool.id
-      nic_id  = data.azurerm_network_interface.nic[idx].id
-      vm_name = local.vm_names_list[idx]
-    } if idx < length(local.vm_names_list) # Ensure we don't exceed vm_names_list length
-  }
+To attach multiple VMs to the load balancer backend pool, you can use the following steps to dynamically associate multiple network interfaces (azurerm_network_interface) with the backend address pool:
 
-  network_interface_id    = each.value.nic_id
-  ip_configuration_name   = join("-", [each.value.vm_name, "nic1_config"])
-  backend_address_pool_id = each.value.pool_id
+Modifications to the Code
+1. Adjust azurerm_network_interface_backend_address_pool_association Resource
+Update the azurerm_network_interface_backend_address_pool_association resource to loop over multiple network interfaces instead of a single one.
+
+Replace:
+
+hcl
+Copy code
+resource "azurerm_network_interface_backend_address_pool_association" "lb_backend_association" {
+  for_each                 = azurerm_lb_backend_address_pool.internal_lb_bepool
+  network_interface_id     = data.azurerm_network_interface.nic.id  # Assuming a single NIC; adjust if multiple.
+  ip_configuration_name    = join("-", [var.vm_name, "nic1_config" ])
+  backend_address_pool_id  = each.value.id
 }
+With:
+
+hcl
+Copy code
+resource "azurerm_network_interface_backend_address_pool_association" "lb_backend_association" {
+  for_each                 = { for index, vm in var.vm_list : index => vm }
+  network_interface_id     = data.azurerm_network_interface.nic[each.key].id
+  ip_configuration_name    = join("-", [each.value.vm_name, "nic1_config"])  # Adjust configuration name as needed
+  backend_address_pool_id  = azurerm_lb_backend_address_pool.internal_lb_bepool[each.value.lb_key].id
+}
+2. Add a New Variable for the VM List
+In variable.tf, define a list variable to store multiple VM configurations:
+
+hcl
+Copy code
+variable "vm_list" {
+  description = "List of VMs to attach to the backend pool"
+  type = list(object({
+    vm_name  = string
+    lb_key   = string  # Key to reference the correct load balancer backend pool
+  }))
+  default = [
+    { vm_name = "VM1", lb_key = "key1" },
+    { vm_name = "VM2", lb_key = "key1" }
+  ]
+}
+3. Update Data Sources for Multiple NICs
+Adjust the azurerm_network_interface data block to accommodate multiple VMs:
+
+hcl
+Copy code
+data "azurerm_network_interface" "nic" {
+  for_each = { for vm in var.vm_list : vm.vm_name => vm }
+  name                = join("-", [each.value.vm_name, "nic-01"])
+  resource_group_name = join("-", [local.naming.bu, local.naming.environment, local.env_location.locations_abbreviation, local.purpose, "rg"])
+}
+4. Adjust azurerm_lb_backend_address_pool if Needed
+If multiple load balancer backend pools are required, ensure they are configured appropriately in the vm_list variable.
+
+Final Configuration Example
+This setup will loop through the vm_list and dynamically associate all listed VMs with the specified load balancer backend pools.
+
+Let me know if you'd like assistance implementing this or further clarification on any step!
