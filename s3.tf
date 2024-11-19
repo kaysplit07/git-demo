@@ -1,48 +1,132 @@
-The error on line 129 in your workflow likely stems from an extra single quote (') in the Terraform Apply step under TF_VAR_vm_list.
-
-Here’s the problematic line:
-
-yaml
-Copy code
-TF_VAR_vm_list:             '${{ env.VM_LIST }}''
-Notice the extra single quote ('') at the end of the value.
-
-Fix:
-Remove the extra single quote from TF_VAR_vm_list. Here's the corrected snippet:
-
-yaml
-Copy code
-- name: 'Terraform Apply - Load Balancer'
-  if: ${{ inputs.vm_list && inputs.requestType == 'Create (with New RG)' }} ||  ${{ inputs.vm_list && inputs.requestType == 'Create (with Existing RG)' }}
-  run: terraform apply -auto-approve
-  env:
-    TF_VAR_requesttype:         '${{inputs.requestType}}'
-    TF_VAR_location:            '${{inputs.location}}'
-    TF_VAR_environment:         '${{inputs.environment}}'
-    TF_VAR_purpose:             '${{inputs.purpose}}'
-    TF_VAR_purpose_rg:          '${{inputs.purposeRG}}'
-    TF_VAR_RGname:              '${{inputs.RGname}}'
-    TF_VAR_subnetname:          '${{inputs.subnetname}}'
-    TF_VAR_sku_name:            '${{inputs.sku_name}}'
-    TF_VAR_private_ip_address:  '${{inputs.private_ip_address}}'
-    TF_VAR_vm_list:             '${{ env.VM_LIST }}'
-Additional Recommendations:
-YAML Linting: Use a YAML linter to catch such errors early. Tools like YAML Lint can validate your syntax.
-Environment Variable Debugging: Add a debugging step to verify the contents of VM_LIST:
-yaml
-Copy code
-- name: Debug VM List
-  run: echo "VM_LIST=$VM_LIST"
-Let me know if you encounter any further issues!
-
-
-
-
-
-
-
-
-
-
-
-
+name: 'Deploy Load Balancer'
+run-name: 'Load Balancer - ${{inputs.environment}} purpose: ${{inputs.purpose}} : ${{inputs.requesttype}}'
+on:
+  workflow_dispatch:
+    inputs:
+      requesttype:
+        type: choice
+        required: true
+        description: Request Type
+        options:
+            - Create (with New RG)
+            - Create (with Existing RG)
+            - Remove
+        default: "Create (with New RG)"
+      environment:
+        type: choice
+        required: true
+        description: Environment
+        options:
+          - DEV
+          - UAT
+          - QA
+          - PROD
+      location:
+        type: choice
+        required: true
+        description: Deployment Location
+        options:
+          - Select the location
+          - eastus2
+          - uksouth
+          - centralus
+          - ukwest
+      sku_name:
+        type: choice
+        required: false
+        description: SKU for Load Balancer
+        options:
+          - Standard
+          - Basic
+        default: "Standard"
+      purpose:
+        type: string
+        required: true
+        description: Purpose of the Load Balancer
+      RGname:
+          type: string
+          required: false
+      purposeRG:
+        type: string
+        required: true
+        description: Resource Group Purpose.......... Hyphen designate an existing RG
+      subnetname:
+        type: string
+        required: true
+        description: Subnet name for Load Balancer.
+      private_ip_address:
+        type: string
+        required: false
+        description: Private IP address for Load Balancer frontend configuration.
+      vm_names:
+        description: "List of VM names for NIC IP configuration"
+        required: false
+        default: '["VM1", "VM2", "VM3"]'
+jobs:
+  resource_group:
+   #if: (github.event.inputs.requesttype == 'Create (with New RG)')
+    if: ${{ inputs.vm_list == null && (inputs.requestType == 'Create (with New RG)' || inputs.requestType == 'Create (with Existing RG)') }}
+    name: 'Resource Group ${{inputs.purposeRG}}'
+    uses: ./.github/workflows/CreateResourceGroup.yml
+    secrets: inherit
+    with:
+      name:                 'resource-group'
+      subscription:         'SNow Input'
+      environment:          '${{inputs.environment}}' 
+      location:             '${{inputs.location}}' 
+      purpose:              '${{inputs.purposeRG}}'
+  
+  load_balancer_new_rg:
+    #if: (github.event.inputs.requesttype == 'Create (with New RG)')
+    if: ${{ inputs.vm_list == null && (inputs.requestType == 'Create (with New RG)' || inputs.requestType == 'Create (with Existing RG)') }}
+    name: 'Load Balancer ${{inputs.purpose}}'
+    uses: ./.github/workflows/LBCreate.yml
+    needs: resource_group
+    secrets: inherit
+    with:
+      requesttype:               '${{inputs.requesttype}}'
+      environment:               '${{inputs.environment}}'
+      location:                  '${{inputs.location}}'
+      sku_name:                  '${{inputs.sku_name}}'
+      purpose:                   '${{inputs.purpose}}'
+      RGname:                    '${{inputs.RGname}}'
+      purposeRG:                 '${{inputs.purposeRG}}'
+      subnetname:                '${{inputs.subnetname}}'
+      private_ip_address:        '${{inputs.private_ip_address}}'
+     # vm_names:                  '${{inputs.vm_names}}'
+     vm_list: '[{"vm_name": "VM1", "nic_name": "NIC1"}, {"vm_name": "VM2", "nic_name": "NIC2"}]'
+  load_balancer_existing_rg:
+    if: (github.event.inputs.requesttype == 'Create (with Existing RG)')
+    name: 'Load Balancer ${{inputs.purpose}}'
+    uses: ./.github/workflows/LBCreate.yml
+    secrets: inherit
+    with:
+      requesttype:               '${{inputs.requesttype}}'
+      environment:               '${{inputs.environment}}'
+      location:                  '${{inputs.location}}'
+      sku_name:                  '${{inputs.sku_name}}'
+      purpose:                   '${{inputs.purpose}}'
+      purposeRG:                 '${{inputs.purposeRG}}'
+      subnetname:                '${{inputs.subnetname}}'
+      RGname:                    '${{inputs.RGname}}'
+      private_ip_address:        '${{inputs.private_ip_address}}'
+      #vm_names:                  '${{inputs.vm_names}}'
+      vm_list: '[{"vm_name": "VM1", "nic_name": "NIC1"}, {"vm_name": "VM2", "nic_name": "NIC2"}]'
+  
+  load_balancer_remove:
+    if: (github.event.inputs.requesttype == 'Remove')
+    name: 'Maintain Load Balancer ${{inputs.purpose}}'
+    uses: ./.github/workflows/LBCreate.yml
+    secrets: inherit
+    with:
+      requesttype:               '${{inputs.requesttype}}'
+      environment:               '${{inputs.environment}}'
+      location:                  '${{inputs.location}}'
+      sku_name:                  '${{inputs.sku_name}}'
+      purpose:                   '${{inputs.purpose}}'
+      purposeRG:                 '${{inputs.purposeRG}}'
+      RGname:                    '${{inputs.RGname}}'
+      subnetname:                '${{inputs.subnetname}}'
+      private_ip_address:        '${{inputs.private_ip_address}}'
+      #vm_names:                  '${{inputs.vm_names}}'
+      vm_list: '[{"vm_name": "VM1", "nic_name": "NIC1"}, {"vm_name": "VM2", "nic_name": "NIC2"}]'
