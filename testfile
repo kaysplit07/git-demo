@@ -1,71 +1,3 @@
-1. Issue: Double single quotes in vm_list default value
-Your default value for vm_list contains a syntax error:
-
-yaml
-Copy code
-default: '[{"vm_name": "VM1", "nic_name": "NIC1"}, {"vm_name": "VM2", "nic_name": "NIC2"}]''
-Fix
-Remove the extra single quote at the end:
-
-yaml
-Copy code
-default: '[{"vm_name": "VM1", "nic_name": "NIC1"}, {"vm_name": "VM2", "nic_name": "NIC2"}]'
-2. Issue: Invalid if condition syntax
-The if condition syntax has inconsistencies. For example:
-
-yaml
-Copy code
-if: ${{ !inputs.vm_list && (inputs.requestType == 'Create (with New RG)' || inputs.requestType == 'Create (with Existing RG)') }}
-This syntax is invalid due to incorrect capitalization (requestType should be lowercase requesttype) and possible logic issues.
-
-Fix
-Use consistent casing and correct the logic:
-
-yaml
-Copy code
-if: ${{ !inputs.vm_list && (inputs.requesttype == 'Create (with New RG)' || inputs.requesttype == 'Create (with Existing RG)') }}
-3. Issue: Misuse of github.event.inputs
-In the if condition:
-
-yaml
-Copy code
-if: (github.event.inputs.requesttype == 'Create (with Existing RG)')
-This is invalid in the workflow_dispatch context. Instead, use inputs.requesttype.
-
-Fix
-Change github.event.inputs.requesttype to inputs.requesttype:
-
-yaml
-Copy code
-if: ${{ inputs.requesttype == 'Create (with Existing RG)' }}
-4. Issue: Input variables not being passed correctly
-In the with block, you're passing vm_list and other inputs using string literals. This can lead to JSON parsing errors or type mismatches.
-
-Fix
-Pass vm_list directly as an input without wrapping it in additional quotes:
-
-yaml
-Copy code
-with:
-  vm_list: ${{ inputs.vm_list }}
-5. Issue: Default vm_list value type mismatch
-The default value for vm_list in the inputs section is a string representation of a JSON array. This might cause type mismatch issues if the consuming workflow expects a list.
-
-Fix
-Ensure vm_list is parsed into a proper list in the consuming workflow. In your lbcreate.yml file, add a step to parse the JSON string into a list.
-
-Example in lbcreate.yml:
-
-yaml
-Copy code
-- name: Parse vm_list
-  id: parse_vm_list
-  run: echo "TF_VAR_vm_list=$(echo '${{ inputs.vm_list }}' | jq -c '.')" >> $GITHUB_ENV
-Final Workflow After Fixes
-Here’s your updated Deploy Load Balancer workflow:
-
-yaml
-Copy code
 name: 'Deploy Load Balancer'
 run-name: 'Load Balancer - ${{ inputs.environment }} purpose: ${{ inputs.purpose }} : ${{ inputs.requesttype }}'
 on:
@@ -144,7 +76,7 @@ jobs:
       purpose: ${{ inputs.purposeRG }}
 
   load_balancer:
-    if: ${{ inputs.requesttype != 'Remove' }}
+    if: ${{ !inputs.vm_list && (inputs.requestType == 'Create (with New RG)' || inputs.requestType == 'Create (with Existing RG)') }}
     name: 'Load Balancer ${{ inputs.purpose }}'
     uses: ./.github/workflows/LBCreate.yml
     needs: resource_group
@@ -177,16 +109,3 @@ jobs:
       subnetname: ${{ inputs.subnetname }}
       private_ip_address: ${{ inputs.private_ip_address }}
       vm_list: ${{ inputs.vm_list }}
-This workflow ensures correct handling of inputs, valid if conditions, and proper vm_list parsing. Let me know if further refinements are needed!
-
-
-
-
-
-
-
-
-
-
-
-
