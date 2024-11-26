@@ -1,100 +1,10 @@
-What Works Well:
-Environment-Specific Configuration:
-
-The Set environment variables based on deployment environment step dynamically sets BACKEND_STORAGE_ACCOUNT and BACKEND_RESOURCE_GROUP values based on the environment (prod, uat, or dev).
-The use of $GITHUB_ENV ensures these values are accessible across steps.
-Secrets Usage:
-
-AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID, and AZURE_SUBSCRIPTION_ID are securely stored in GitHub Secrets, reducing the risk of accidental exposure.
-Terraform Workflow:
-
-The Terraform commands (init, plan, apply, destroy) are well-defined and appropriately parameterized with inputs and environment variables.
-Potential Issues and Enhancements:
-1. Inputs Validation
-If some inputs (e.g., requestType, vm_names) are optional but needed for specific steps, ensure validation before using them. For example:
-vm_names may be passed as a single string or a list. To avoid errors:
-Use JSON or a comma-separated string, and handle parsing in Terraform (as described in earlier steps).
-For conditional logic like requestType == 'Create (with New RG)', ensure the value is consistent.
-Enhancement: Add a step to validate inputs:
-
-yaml
-Copy code
-- name: Validate Inputs
-  run: |
-    if [[ -z "${{ inputs.location }}" ]]; then
-      echo "Error: 'location' input is required."
-      exit 1
-    fi
-2. Ensure Environment Variables Are Passed Correctly
-While $GITHUB_ENV is used to set environment variables (BACKEND_STORAGE_ACCOUNT, etc.), ensure these variables are passed to Terraform in the same step.
-Improvement: Instead of setting environment variables dynamically in $GITHUB_ENV, pass them directly to Terraform steps:
-
-yaml
-Copy code
-env:
-  BACKEND_STORAGE_ACCOUNT: ${{ env.BACKEND_STORAGE_ACCOUNT }}
-  BACKEND_RESOURCE_GROUP: ${{ env.BACKEND_RESOURCE_GROUP }}
-3. Dynamic Handling of vm_names
-If vm_names is a list or a single value, ensure Terraform can handle both cases by processing the input dynamically.
-Solution: Update your Terraform code to handle vm_names as described earlier:
-
-hcl
-Copy code
-variable "vm_names" {
-  type        = any
-  description = "List of VM names for NIC IP configuration."
-}
-
-locals {
-  vm_names_list = can(length(var.vm_names)) ? var.vm_names : [var.vm_names]
-}
-Update Workflow Input:
-
-yaml
-Copy code
-vm_names:
-  description: "List of VM names (e.g., ['VM1', 'VM2'])"
-  required: false
-  default: '["VM1"]'
-4. Error Handling for Terraform Steps
-Ensure Terraform steps (init, plan, apply, destroy) fail gracefully and provide detailed logs for debugging.
-Improvement: Add a fail-safe to log errors if Terraform fails:
-
-yaml
-Copy code
-- name: Terraform Init
-  run: |
-    terraform init -backend-config="resource_group_name=$BACKEND_RESOURCE_GROUP" \
-                   -backend-config="storage_account_name=$BACKEND_STORAGE_ACCOUNT" \
-                   -backend-config="container_name=terraform-state" \
-                   -backend-config="key=${{ inputs.environment }}-lb-terraform.tfstate" \
-                   -input=false || (echo "Terraform Init Failed" && exit 1)
-5. Reduce Repetition in env Variables
-The env block for each Terraform command is repetitive. You can define a common environment block to reuse across all steps.
-Refactor: Use a reusable block:
-
-yaml
-Copy code
-env:
-  TF_VAR_requesttype:         '${{ inputs.requestType }}'
-  TF_VAR_location:            '${{ inputs.location }}'
-  TF_VAR_environment:         '${{ inputs.environment }}'
-  TF_VAR_purpose:             '${{ inputs.purpose }}'
-  TF_VAR_purpose_rg:          '${{ inputs.purposeRG }}'
-  TF_VAR_RGname:              '${{ inputs.RGname }}'
-  TF_VAR_subnetname:          '${{ inputs.subnetname }}'
-  TF_VAR_sku_name:            '${{ inputs.sku_name }}'
-  TF_VAR_private_ip_address:  '${{ inputs.private_ip_address }}'
-  TF_VAR_vm_names:            '${{ inputs.vm_names }}'
-Then reference it across all steps.
-
-Final Optimized Workflow
-Here’s a consolidated and optimized version of your workflow:
+Updated Workflow with GitHub Secrets
+In this version, BACKEND_STORAGE_ACCOUNT and BACKEND_RESOURCE_GROUP are stored in GitHub Secrets and dynamically retrieved based on the environment input.
 
 yaml
 Copy code
 name: 'zLoad Balancer (Call)'
-run-name: '${{github.actor}} - Creating Load Balancer'
+run-name: '${{ github.actor }} - Creating Load Balancer'
 
 on:
   workflow_call:
@@ -113,7 +23,7 @@ on:
         required: false
 env:
   permissions:
-  contents: read
+    contents: read
 
 jobs:
   lb-create:
@@ -124,7 +34,7 @@ jobs:
       ARM_TENANT_ID:        ${{ secrets.AZURE_TENANT_ID }}
       ARM_SUBSCRIPTION_ID:  ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       ROOT_PATH:            'Azure/Azure-LB'
-    runs-on: 
+    runs-on:
       group: aks-runners
     environment: ${{ inputs.environment }}
     defaults:
@@ -135,20 +45,20 @@ jobs:
       - name: 'Checkout Code'
         uses: actions/checkout@v3
 
-      - name: Set Backend Config
+      - name: Set Environment Variables
         run: |
           if [ "${{ inputs.environment }}" = "prod" ]; then
-              echo "BACKEND_STORAGE_ACCOUNT=ngpdeus26425st01" >> "$GITHUB_ENV"
-              echo "BACKEND_RESOURCE_GROUP=6425-Prod-eus2-main-rg" >> "$GITHUB_ENV"
+              echo "BACKEND_STORAGE_ACCOUNT=${{ secrets.PROD_BACKEND_STORAGE_ACCOUNT }}" >> "$GITHUB_ENV"
+              echo "BACKEND_RESOURCE_GROUP=${{ secrets.PROD_BACKEND_RESOURCE_GROUP }}" >> "$GITHUB_ENV"
           elif [ "${{ inputs.environment }}" = "uat" ]; then
-              echo "BACKEND_STORAGE_ACCOUNT=nguteus26425st01" >> "$GITHUB_ENV"
-              echo "BACKEND_RESOURCE_GROUP=6425-uat-eus2-main-rg" >> "$GITHUB_ENV"
+              echo "BACKEND_STORAGE_ACCOUNT=${{ secrets.UAT_BACKEND_STORAGE_ACCOUNT }}" >> "$GITHUB_ENV"
+              echo "BACKEND_RESOURCE_GROUP=${{ secrets.UAT_BACKEND_RESOURCE_GROUP }}" >> "$GITHUB_ENV"
           else
-              echo "BACKEND_STORAGE_ACCOUNT=6425dveus2aristb01" >> "$GITHUB_ENV"
-              echo "BACKEND_RESOURCE_GROUP=test-dev-eus2-testing-rg" >> "$GITHUB_ENV"
+              echo "BACKEND_STORAGE_ACCOUNT=${{ secrets.DEV_BACKEND_STORAGE_ACCOUNT }}" >> "$GITHUB_ENV"
+              echo "BACKEND_RESOURCE_GROUP=${{ secrets.DEV_BACKEND_RESOURCE_GROUP }}" >> "$GITHUB_ENV"
           fi
 
-      - name: Terraform Init
+      - name: 'Terraform Init - Load Balancer'
         run: |
           terraform init \
           -backend-config="resource_group_name=$BACKEND_RESOURCE_GROUP" \
@@ -156,7 +66,47 @@ jobs:
           -backend-config="container_name=terraform-state" \
           -backend-config="key=${{ inputs.environment }}-lb-terraform.tfstate" \
           -input=false
-This optimized version reduces repetition and includes validation and error handling to make the workflow robust. Let me know if you need further refinements!
+        env:
+          TF_VAR_requesttype:         '${{ inputs.requestType }}'
+          TF_VAR_location:            '${{ inputs.location }}'
+          TF_VAR_environment:         '${{ inputs.environment }}'
+          TF_VAR_vm_names:            '${{ inputs.vm_names }}'
+Key Changes
+GitHub Secrets for Each Environment
+
+Store BACKEND_STORAGE_ACCOUNT and BACKEND_RESOURCE_GROUP for each environment (prod, uat, dev) in GitHub Secrets:
+PROD_BACKEND_STORAGE_ACCOUNT
+PROD_BACKEND_RESOURCE_GROUP
+UAT_BACKEND_STORAGE_ACCOUNT
+UAT_BACKEND_RESOURCE_GROUP
+DEV_BACKEND_STORAGE_ACCOUNT
+DEV_BACKEND_RESOURCE_GROUP
+You can add these secrets in your repository or organization-level GitHub settings under Settings > Secrets and variables > Actions.
+
+Dynamic Environment Variable Assignment
+
+The Set Environment Variables step dynamically assigns the values from GitHub Secrets based on the environment input.
+The values are appended to the $GITHUB_ENV file, making them available to all subsequent steps.
+Use in Terraform Commands
+
+The dynamically assigned BACKEND_STORAGE_ACCOUNT and BACKEND_RESOURCE_GROUP values are passed to the Terraform init command using the $BACKEND_STORAGE_ACCOUNT and $BACKEND_RESOURCE_GROUP environment variables.
+Why This Approach?
+No Hardcoding: The sensitive values are securely stored and managed in GitHub Secrets.
+Environment-Specific Values: The workflow automatically selects the correct values based on the environment input.
+Reusable Workflow: This setup can handle new environments by simply adding corresponding secrets.
+Adding Secrets to GitHub
+Navigate to your repository.
+Go to Settings > Secrets and variables > Actions.
+Add the following secrets:
+PROD_BACKEND_STORAGE_ACCOUNT
+PROD_BACKEND_RESOURCE_GROUP
+UAT_BACKEND_STORAGE_ACCOUNT
+UAT_BACKEND_RESOURCE_GROUP
+DEV_BACKEND_STORAGE_ACCOUNT
+DEV_BACKEND_RESOURCE_GROUP
+For each secret, provide the appropriate value for the environment.
+
+This approach keeps your workflow secure, flexible, and scalable. Let me know if you have further questions!
 
 
 
