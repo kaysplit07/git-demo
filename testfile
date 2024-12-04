@@ -1,135 +1,35 @@
-# Data sources
-data "azurerm_subscription" "current" {}  # Read the current subscription info
-
-data "azurerm_client_config" "clientconfig" {}  # Read the current client config
+####
+workflow
+nic_names:
+        description: "Comma-separated list of NIC names"
+        required: true
+        default: "nic1,nic2,nic3"
+        
+#####
+locals
+nic_names = split(",", var.nic_names)
+######
 
 data "azurerm_network_interface" "nic" {
-  for_each = toset(var.vm_names)
+  for_each = toset(local.nic_names)
 
-  name                = "${each.value}${var.nic_name_suffix}"
-  resource_group_name = join("-", [local.naming.bu, local.naming.environment, local.env_location.locations_abbreviation, local.purpose, rg])
+  name                = each.value
+  resource_group_name = join("-", [local.naming.bu, local.naming.environment, local.env_location.locations_abbreviation, var.purpose_rg, rg])
 }
 
-# Locals
-locals {
-  get_data = csvdecode(file(var.parameters_file_path))
-  
-  naming = {
-    bu                = lower(split("-", data.azurerm_subscription.current.display_name)[1])
-    environment       = lower(split("-", data.azurerm_subscription.current.display_name)[2])
-    locations         = var.location
-    nn                = lower(split("-", data.azurerm_subscription.current.display_name)[3])
-    subscription_name = data.azurerm_subscription.current.display_name
-    subscription_id   = data.azurerm_subscription.current.id
-  }
 
-  env_location = {
-    env_abbreviation       = var.environment_map[local.naming.environment]
-    locations_abbreviation = var.location_map[local.naming.locations]
-  }
-
-  # Split purpose_full into purpose and sequence based on "/"
-  purpose_parts = split("/", var.purpose)
-
-  # Extract purpose and sequence from purpose_parts
-  purpose  = length(local.purpose_parts) > 0 ? local.purpose_parts[0] : null
-  sequence = length(local.purpose_parts) > 1 ? local.purpose_parts[1] : null
-
-  purpose_rg = local.purpose
+variable "nic_names" {
+  type        = list(string)
+  description = "List of network interface names to query."
 }
 
-data "azurerm_resource_group" "rg" {
-  for_each = { for inst in local.get_data : inst.unique_id => inst }
-  name     = join("-", [local.naming.bu, local.naming.environment, local.env_location.locations_abbreviation, local.purpose, rg])
-}
 
-data "azurerm_virtual_network" "vnet" {
-  for_each = { for index, inst in local.get_data : index => inst }
-  name = (lookup(each.value, "vnet_name", null) != null && lookup(each.value, "vnet_name", "") != "") ? each.value.vnet_name : join("-", [local.naming.bu, local.naming.environment, local.env_location.locations_abbreviation, "vnet", local.naming.nn])
-  resource_group_name  = (lookup(each.value, "vnet_resource_group", null) != null && lookup(each.value, "vnet_resource_group", "") != "") ? each.value.vnet_resource_group : join("-", [local.naming.bu, local.naming.environment, local.env_location.locations_abbreviation, "spokenetwork-rg"])
-}
 
-data "azurerm_subnet" "subnet" {
-  for_each = { for index, inst in local.get_data : index => inst }
-  name                 = (lookup(each.value, "subnet_name", null) != null && lookup(each.value, "subnet_name", "") != "") ? each.value.subnet_name : var.subnetname
-  virtual_network_name = data.azurerm_virtual_network.vnet[each.key].name
-  resource_group_name  = (lookup(each.value, "vnet_resource_group", null) != null && lookup(each.value, "vnet_resource_group", "") != "") ? each.value.vnet_resource_group : join("-", [local.naming.bu, local.naming.environment, local.env_location.locations_abbreviation, "spokenetwork-rg"])
-}
+############################
+nic_names               = var.nic_names
 
-# Resources
-resource "azurerm_lb" "internal_lb" {
-  for_each            = { for inst in local.get_data : inst.unique_id => inst }
-  name                = join("-", [var.lb_name_prefix, local.naming.environment, local.env_location.locations_abbreviation, local.purpose_rg, var.lb_name_infix, local.sequence])
-  location            = var.location
-  resource_group_name = data.azurerm_resource_group.rg[each.key].name
-  sku                 = lookup(each.value, "sku_name", var.sku_name)
 
-  frontend_ip_configuration {
-    name                          = "internal-${local.purpose_rg}-server-feip"
-    subnet_id                     = data.azurerm_subnet.subnet[each.key].id
-    private_ip_address            = var.private_ip_address
-    private_ip_address_allocation = var.private_ip_address_allocation
-  }
-}
-
-resource "azurerm_lb_backend_address_pool" "internal_lb_bepool" {
-  for_each        = azurerm_lb.internal_lb
-  loadbalancer_id = azurerm_lb.internal_lb[each.key].id
-  name            = "internal-${local.purpose_rg}-server-bepool"
-}
-
-resource "azurerm_network_interface_backend_address_pool_association" "lb_backend_association" {
-  for_each = {
-    for vm_name in var.vm_names :
-    vm_name => {
-      nic_id                = data.azurerm_network_interface.nic[vm_name].id
-      ip_configuration_name = join("-", [vm_name, "nic1_config"]) 
-    }
-  }
-
-  network_interface_id    = each.value.nic_id
-  ip_configuration_name   = each.value.ip_configuration_name
-  backend_address_pool_id = azurerm_lb_backend_address_pool.internal_lb_bepool["1"].id
-}
-
-resource "azurerm_lb_probe" "tcp_probe" {
-  for_each            = azurerm_lb.internal_lb
-  name                = "internal-${local.purpose_rg}-server-tcp-probe"
-  loadbalancer_id     = azurerm_lb.internal_lb[each.key].id
-  protocol            = var.lb_probe_protocol
-  port                = var.lb_probe_port
-  interval_in_seconds = var.lb_probe_interval_in_seconds
-  number_of_probes    = var.lb_probe_number_of_probes
-}
-
-resource "azurerm_lb_rule" "tcp_rule" {
-  for_each                       = azurerm_lb.internal_lb
-  name                           = "internal-${local.purpose_rg}-server-tcp-lbrule"
-  loadbalancer_id                = azurerm_lb.internal_lb[each.key].id
-  protocol                       = var.lb_rule_tcp_protocol
-  frontend_port                  = var.lb_rule_tcp_frontend_port
-  backend_port                   = var.lb_rule_tcp_backend_port
-  frontend_ip_configuration_name = azurerm_lb.internal_lb[each.key].frontend_ip_configuration[0].name
-  backend_address_pool_ids       = [azurerm_lb_backend_address_pool.internal_lb_bepool[each.key].id]
-  idle_timeout_in_minutes        = var.lb_rule_tcp_idle_timeout_in_minutes
-  enable_floating_ip             = var.lb_rule_tcp_enable_floating_ip
-  enable_tcp_reset               = var.lb_rule_tcp_enable_tcp_reset
-  disable_outbound_snat          = var.lb_rule_tcp_disable_outbound_snat
-  probe_id                       = azurerm_lb_probe.tcp_probe[each.key].id
-}
-
-resource "azurerm_lb_rule" "https_rule" {
-  for_each                       = azurerm_lb.internal_lb
-  name                           = "internal-${local.purpose_rg}-server-https-lbrule"
-  loadbalancer_id                = azurerm_lb.internal_lb[each.key].id
-  protocol                       = var.lb_rule_https_protocol
-  frontend_port                  = var.lb_rule_https_frontend_port
-  backend_port                   = var.lb_rule_https_backend_port
-  frontend_ip_configuration_name = azurerm_lb.internal_lb[each.key].frontend_ip_configuration[0].name
-  backend_address_pool_ids       = [azurerm_lb_backend_address_pool.internal_lb_bepool[each.key].id]
-  idle_timeout_in_minutes        = var.lb_rule_https_idle_timeout_in_minutes
-  enable_floating_ip             = var.lb_rule_https_enable_floating_ip
-  enable_tcp_reset               = var.lb_rule_https_enable_tcp_reset
-  disable_outbound_snat          = var.lb_rule_https_disable_outbound_snat
-  probe_id                       = azurerm_lb_probe.tcp_probe[each.key].id
+variable "nic_names" {
+  type        = list(string)
+  description = "List of network interface names to query."
 }
