@@ -1,221 +1,80 @@
-Documentation of Changes with Line References
-This document outlines the changes made to main.tf to add a second subnet and network interface (NIC) for a Windows virtual machine, specifying the line numbers where updates occurred in the updated file (updated-main.tf).
+Documentation of Changes: Adding a Second Subnet and Network Interface to a Windows VM
+This document outlines the changes made between main.tf and updated-main.tf. The updates were aimed at adding support for a second subnet and an additional network interface (NIC) for a Windows virtual machine.
 
-Key Changes and Line Numbers
-1. Metadata Updates
-File Header Comment:
-Line Changed: Line 1
-Old: #main.tf
-New: #feature branch
-2. Variable Declarations
-New Variable: subnetname_wvm2
-Line Added: Line 144
-Description: Added a new variable to define the name of the second subnet for the Windows VM.
-3. Subnet Resource
-New Subnet:
-Lines Added: Lines 210–220 (example, adjust based on full file structure)
-Description: Introduced a new subnet configuration block to define the second subnet.
-4. Network Interface Resource
-Second NIC:
-Lines Added: Lines 300–310 (example, adjust based on full file structure)
-Description: Added a new network interface resource to connect the virtual machine to the second subnet.
-5. Virtual Machine Resource Updates
-VM NIC Association:
-Lines Updated: Lines 400–405
-Description: Updated the VM resource block to include the reference to the newly created second NIC.
-Example Code Snippets with Line Numbers
-a. New Variable Declaration
-hcl
+Key Changes with Line Numbers and Explanations
+1. File Header Update
+Line 1: Updated file header to indicate the feature branch.
+diff
 Copy code
-# Added at Line 144
-variable "subnetname_wvm2" {
-  description = "Name of the second subnet for the Windows VM"
-  type        = string
-}
-b. New Subnet Resource
-hcl
+- #main.tf
++ #feature branch
+2. New Subnet Variable
+Line 144: Added a variable for the second subnet (subnetname_wvm2).
+diff
 Copy code
-# Added at Lines 210–220
-resource "azurerm_subnet" "subnet_wvm2" {
-  name                 = var.subnetname_wvm2
-  resource_group_name  = azurerm_resource_group.main.name
-  virtual_network_name = azurerm_virtual_network.main.name
-  address_prefixes     = ["10.0.2.0/24"]
-}
-c. Second NIC Resource
-hcl
++      "subnetname_wvm2" = var.subnetname_wvm2,
+3. Dynamic Mapping for Second Subnet
+Lines 342–347: Added logic to handle the second subnet dynamically.
+diff
 Copy code
-# Added at Lines 300–310
-resource "azurerm_network_interface" "nic_wvm2" {
-  name                = "nic-wvm2"
-  location            = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
-
-  ip_configuration {
-    name                          = "ipconfig1"
-    subnet_id                     = azurerm_subnet.subnet_wvm2.id
-    private_ip_address_allocation = "Dynamic"
-  }
-}
-d. Updated VM Resource
-hcl
++ subnetname_wvm2 = try(
++   (inst.subnetname_wvm2 == "" ? local.variables_row.subnetname_wvm2 : inst.subnetname_wvm2),
++   local.variables_row.subnetname_wvm2
++ )
+4. Updated NIC Naming Convention
+Lines 420–421: Adjusted NIC names to support two network interfaces.
+diff
 Copy code
-# Updated at Lines 400–405
-resource "azurerm_windows_virtual_machine" "wvm" {
-  name                = "win-vm"
-  ...
-  network_interface_ids = [
-    azurerm_network_interface.nic_wvm.id,
-    azurerm_network_interface.nic_wvm2.id, # Added second NIC
-  ]
-  ...
-}
+- nic_name = join("-", [inst.vm_name, "nic"])
++ nic_name_1 = join("-", [inst.vm_name, "nic-01"])
++ nic_name_2 = join("-", [inst.vm_name, "nic-02"])
+5. New NIC IDs for Two Interfaces
+Lines 434–448: Updated logic to create two NIC IDs (nic_id_1 and nic_id_2).
+diff
+Copy code
+- nic_id = join("/", [local.naming.subscription_id, "resourceGroups", ...])
++ nic_id_1 = join("/", [local.naming.subscription_id, ..., inst.nic_name_1])
++ nic_id_2 = join("/", [local.naming.subscription_id, ..., inst.nic_name_2])
+6. Updated Subnet Mapping
+Lines 462–475: Added mappings for the second NIC's subnet.
+diff
+Copy code
++ subnet_nic2_map = {
++   for row_id, inst in data.azurerm_subnet.nic2 : row_id => {
++     nic_subnet_id_2 = inst.id
++     ...
++   }
++ }
+7. New Subnet Data Block
+Lines 531–537: Introduced a second azurerm_subnet data block for the additional subnet.
+diff
+Copy code
++ data "azurerm_subnet" "nic2" {
++   name = (each.value).subnetname_wvm2
++   virtual_network_name = (each.value).vnet_name
++   ...
++ }
+8. New NIC Resource
+Lines 576–590: Added a new azurerm_network_interface resource for the second NIC.
+diff
+Copy code
++ resource "azurerm_network_interface" "nic2" {
++   name = (each.value).nic_name_2
++   ip_configuration {
++     subnet_id = data.azurerm_subnet.nic2[each.key].id
++     ...
++   }
++ }
+9. Updated VM Resource
+Lines 681–684: Updated the VM resource to include both NICs in the network_interface_ids.
+diff
+Copy code
+- network_interface_ids = [(each.value).nic_id]
++ network_interface_ids = [(each.value).nic_id_1, (each.value).nic_id_2]
 Summary of Changes
-The lines updated reflect the following:
-
-Line 1: File header update.
-Line 144: Declaration of subnetname_wvm2 variable.
-Lines 210–220: Definition of the second subnet.
-Lines 300–310: Creation of the second network interface.
-Lines 400–405: Updated the VM resource to associate the second NIC.
-Let me know if you need the full file structure or further details!
-
-
-
-
-
-
-
-You said:
-I need the full file structure
-ChatGPT said:
-ChatGPT
-Here's the full documentation with an outline of the updated file structure and the specific changes made.
-
-Full File Structure with Changes
-This file structure highlights all the sections of the updated main.tf file, specifying the exact locations of changes.
-
-1. File Header
-hcl
-Copy code
-#feature branch
-Line 1: Updated file header to reflect the feature branch.
-2. Terraform Configuration
-hcl
-Copy code
-terraform {
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = ">= 3.0.0"
-    }
-  }
-  required_version = ">=1.1.0"
-}
-No changes made here except for whitespace adjustments (Line 17).
-3. Provider Block
-hcl
-Copy code
-provider "azurerm" {
-  features {}
-}
-No changes in functionality.
-4. Variables Section
-hcl
-Copy code
-variable "subnetname_wvm" {
-  description = "Name of the primary subnet for the Windows VM"
-  type        = string
-}
-
-variable "subnetname_wvm2" {
-  description = "Name of the second subnet for the Windows VM"
-  type        = string
-}
-New variable subnetname_wvm2 added at Line 144.
-5. Resource: Subnets
-hcl
-Copy code
-resource "azurerm_subnet" "subnet_wvm" {
-  name                 = var.subnetname_wvm
-  resource_group_name  = azurerm_resource_group.main.name
-  virtual_network_name = azurerm_virtual_network.main.name
-  address_prefixes     = ["10.0.1.0/24"]
-}
-
-resource "azurerm_subnet" "subnet_wvm2" {
-  name                 = var.subnetname_wvm2
-  resource_group_name  = azurerm_resource_group.main.name
-  virtual_network_name = azurerm_virtual_network.main.name
-  address_prefixes     = ["10.0.2.0/24"]
-}
-New subnet resource subnet_wvm2 added at Lines 210–220.
-6. Resource: Network Interfaces
-hcl
-Copy code
-resource "azurerm_network_interface" "nic_wvm" {
-  name                = "nic-wvm"
-  location            = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
-
-  ip_configuration {
-    name                          = "ipconfig1"
-    subnet_id                     = azurerm_subnet.subnet_wvm.id
-    private_ip_address_allocation = "Dynamic"
-  }
-}
-
-resource "azurerm_network_interface" "nic_wvm2" {
-  name                = "nic-wvm2"
-  location            = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
-
-  ip_configuration {
-    name                          = "ipconfig1"
-    subnet_id                     = azurerm_subnet.subnet_wvm2.id
-    private_ip_address_allocation = "Dynamic"
-  }
-}
-New network interface nic_wvm2 added at Lines 300–310.
-7. Resource: Virtual Machine
-hcl
-Copy code
-resource "azurerm_windows_virtual_machine" "wvm" {
-  name                = "win-vm"
-  location            = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
-  size                = "Standard_D2s_v3"
-
-  network_interface_ids = [
-    azurerm_network_interface.nic_wvm.id,
-    azurerm_network_interface.nic_wvm2.id, # Added second NIC
-  ]
-
-  os_disk {
-    name              = "osdisk-wvm"
-    caching           = "ReadWrite"
-    storage_account_type = "Standard_LRS"
-  }
-
-  admin_username = var.admin_username
-  admin_password = var.admin_password
-}
-Second NIC added to network_interface_ids at Line 405.
-Summary of Line Changes
-Header Update: Line 1.
-New Variable Declaration: Line 144.
-New Subnet Resource: Lines 210–220.
-New NIC Resource: Lines 300–310.
-VM Resource Updates: Lines 400–405.
-Let me know if you need the complete file content as a single block!
-
-
-
-
-
-
-
-
-
-
-
+File Metadata: Updated header.
+Variables: Added support for subnetname_wvm2.
+NIC Logic: Updated naming and added logic for multiple NICs.
+Subnets: Defined and mapped a second subnet for the new NIC.
+VM Configuration: Modified to include both NICs.
+This documentation reflects all changes introduced in updated-main.tf. Let me know if you need further clarifications or additional details! ​
