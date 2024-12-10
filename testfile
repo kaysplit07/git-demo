@@ -1,109 +1,171 @@
-In the Terraform code provided, the concepts of child and parent modules can be explained as follows:
+name: 'zWindows VM (Call)'
+run-name: '${{github.actor}} - Creating App Gateway'
+on:
+  workflow_call:
+    inputs:
+      requestType:
+        type: string
+        required: false
+      environment:
+        type: string
+        required: true
+      location:
+        type: string
+        required: false
+      vmsize:
+        type: string
+        required: false
+      purpose:
+        type: string
+        required: false
+      purposeRG:
+        type: string
+        required: false
+      projectou:
+        type: string
+        required: false
+      subnetNameWVM:
+        type: string
+        required: false
+      subnetNameWVM2:
+        type: string
+        required: false
+      diskSizeGB:
+        type: string
+        required: false
+      diskStorageAccountType:
+        type: string
+        required: false
+    secrets:
+      ARM_CLIENT_ID:
+        required: true
+      ARM_CLIENT_SECRET:
+        required: true
+      ARM_SUBSCRIPTION_ID:
+        required: true
+      ARM_TENANT_ID:
+        required: true
+env:
+  permissions:
+  contents: read
+jobs:
+  wvm-create:
+    name: 'Create Windows VM'
+    env:
+      ARM_CLIENT_ID:        ${{secrets.ARM_CLIENT_ID}}
+      ARM_CLIENT_SECRET:    ${{secrets.ARM_CLIENT_SECRET}}
+      ARM_TENANT_ID:        ${{secrets.ARM_TENANT_ID}}
+      ARM_SUBSCRIPTION_ID:  ${{secrets.ARM_SUBSCRIPTION_ID}}
+      ROOT_PATH:            'Azure/windows-vm'
+    runs-on: 
+      group: aks-runners
+    environment: ${{inputs.environment}}
+    defaults:
+      run:
+        shell: bash
+        working-directory: 'Azure/windows-vm'
+    steps:
+      - name: 'Checkout - Windows VM (${{ inputs.purpose }})'
+        uses: actions/checkout@v3
+      - name: 'Setup Node.js'
+        uses: actions/setup-node@v2
+        with:
+          node-version: '20'  # Specify the required Node.js version  
+      - name: 'Setup Terraform'
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: latest      
+      - id: envvars
+        name: Set environment variables based on deployment environment
+        run: |
+            if [ "${{ inputs.environment }}" = "prod" ]; then
+              echo "BACKEND_STORAGE_ACCOUNT=${{ secrets.BACKEND_STORAGE_ACCOUNT }}" >> "$GITHUB_ENV"
+              echo "BACKEND_RESOURCE_GROUP=${{ secrets.BACKEND_RESOURCE_GROUP }}" >> "$GITHUB_ENV"
+            elif [ "${{ inputs.environment }}" = "uat" ]; then
+              echo "BACKEND_STORAGE_ACCOUNT=${{ secrets.BACKEND_STORAGE_ACCOUNT }}" >> "$GITHUB_ENV"
+              echo "BACKEND_RESOURCE_GROUP=${{ secrets.BACKEND_RESOURCE_GROUP }}" >> "$GITHUB_ENV"
+            else
+              echo "BACKEND_STORAGE_ACCOUNT=${{ secrets.BACKEND_STORAGE_ACCOUNT }}" >> "$GITHUB_ENV"
+              echo "BACKEND_RESOURCE_GROUP=${{ secrets.BACKEND_RESOURCE_GROUP }}" >> "$GITHUB_ENV"
+            fi
+      - name: 'Terraform Initialize - Windows VM (${{ inputs.purpose }})'
+        run: terraform init -backend-config="resource_group_name=$BACKEND_RESOURCE_GROUP" -backend-config="storage_account_name=$BACKEND_STORAGE_ACCOUNT" -backend-config="container_name=terraform-state" -backend-config="key=${{ inputs.environment }}-${{ inputs.purpose }}-terraform.tfstate" -input=false
+        #uses: hashicorp/terraform-github-actions@master
+        # with:
+        #   tf_actions_version:     latest
+        #   tf_actions_subcommand:  'init'
+        #   tf_actions_working_dir: ${{env.ROOT_PATH}}
+        #   tf_actions_comment:     true
+        env:
+          TF_VAR_request_type:              '${{inputs.requestType}}'
+          TF_VAR_location:                  '${{inputs.location}}'
+          TF_VAR_vm_size:                   '${{inputs.vmsize}}'
+          TF_VAR_purpose:                   '${{inputs.purpose}}'
+          TF_VAR_purpose_rg:                '${{inputs.purposeRG}}'
+          TF_VAR_project_ou:                '${{inputs.projectou}}'
+          TF_VAR_subnetname_wvm:            '${{inputs.subnetNameWVM}}'
+          TF_VAR_subnetname_wvm2:           '${{inputs.subnetNameWVM2}}'
+          TF_VAR_disk_size_gb:              '${{inputs.diskSizeGB}}'
+          TF_VAR_disk_storage_account_type: '${{inputs.diskStorageAccountType}}'
+      - name: 'Terraform Plan - Wiindows VM (${{ inputs.purpose }})'
+        if: ${{ inputs.requestType == 'Create (with New RG)' || inputs.requestType == 'Create (with Existing RG)' }}
+        uses: hashicorp/terraform-github-actions@master
+        with:
+          tf_actions_version:     latest
+          tf_actions_subcommand:  'plan'
+          tf_actions_working_dir: ${{env.ROOT_PATH}}
+          tf_actions_comment:     true
+        env:
+          TF_VAR_request_type:              '${{inputs.requestType}}'
+          TF_VAR_location:                  '${{inputs.location}}'
+          TF_VAR_vm_size:                   '${{inputs.vmsize}}'
+          TF_VAR_purpose:                   '${{inputs.purpose}}'
+          TF_VAR_purpose_rg:                '${{inputs.purposeRG}}'
+          TF_VAR_project_ou:                '${{inputs.projectou}}'
+          TF_VAR_subnetname_wvm:            '${{inputs.subnetNameWVM}}'
+          TF_VAR_subnetname_wvm2:           '${{inputs.subnetNameWVM2}}'
+          TF_VAR_disk_size_gb:              '${{inputs.diskSizeGB}}'
+          TF_VAR_disk_storage_account_type: '${{inputs.diskStorageAccountType}}'
+      - name: 'Apply - Windows VM (${{ inputs.purpose }})'
+        if: ${{ inputs.requestType == 'Create (with New RG)' || inputs.requestType == 'Create (with Existing RG)' }}
+        uses: hashicorp/terraform-github-actions@master
+        with:
+          tf_actions_version:     latest
+          tf_actions_subcommand:  'apply'
+          tf_actions_working_dir: ${{env.ROOT_PATH}}
+          tf_actions_comment:     true
+        env:
+          TF_VAR_request_type:              '${{inputs.requestType}}'
+          TF_VAR_location:                  '${{inputs.location}}'
+          TF_VAR_vm_size:                   '${{inputs.vmsize}}'
+          TF_VAR_purpose:                   '${{inputs.purpose}}'
+          TF_VAR_purpose_rg:                '${{inputs.purposeRG}}'
+          TF_VAR_project_ou:                '${{inputs.projectou}}'
+          TF_VAR_subnetname_wvm:            '${{inputs.subnetNameWVM}}'
+          TF_VAR_subnetname_wvm2:           '${{inputs.subnetNameWVM2}}'
+          TF_VAR_disk_size_gb:              '${{inputs.diskSizeGB}}'
+          TF_VAR_disk_storage_account_type: '${{inputs.diskStorageAccountType}}'
+      - name: 'Terraform Destroy - Windows VM (${{ inputs.purpose }})'
+        if: ${{ inputs.requestType == 'Remove (Destroy VM)' }}
+        uses: hashicorp/terraform-github-actions@master
+        with:
+          tf_actions_version:     latest
+          tf_actions_subcommand:  'destroy'
+          tf_actions_working_dir: ${{env.ROOT_PATH}}
+          tf_actions_comment:     true
+          tf_actions_cli_options: '-auto-approve'
+        env:
+          TF_VAR_request_type:              '${{inputs.requestType}}'
+          TF_VAR_location:                  '${{inputs.location}}'
+          TF_VAR_vm_size:                   '${{inputs.vmsize}}'
+          TF_VAR_purpose:                   '${{inputs.purpose}}'
+          TF_VAR_purpose_rg:                '${{inputs.purposeRG}}'
+          TF_VAR_project_ou:                '${{inputs.projectou}}'
+          TF_VAR_subnetname_wvm:            '${{inputs.subnetNameWVM}}'
+          TF_VAR_subnetname_wvm2:           '${{inputs.subnetNameWVM2}}'
+          TF_VAR_disk_size_gb:              '${{inputs.diskSizeGB}}'
+          TF_VAR_disk_storage_account_type: '${{inputs.diskStorageAccountType}}'
 
-Parent Module
-The parent module refers to the root or primary module from where the execution of Terraform begins.
-In the code, the parent module is the main configuration where the terraform block, variables, data sources, and outputs are defined.
-It also includes the module block, which calls the child module (module "azure_load_balancer").
-Characteristics in the Code:
-Parent module defines the global context:
 
-It initializes the azurerm provider with a backend configuration for state management.
-hcl
-Copy code
-terraform {
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "=3.100.0"
-    }
-  }
-  backend "azurerm" {}
-}
-Parent module passes inputs to the child module:
-
-The parent module uses variables to pass values to the child module.
-hcl
-Copy code
-module "azure_load_balancer" {
-  source = "./LB-module"
-
-  nic_names = var.nic_names
-  location = var.location
-  # Other parameters...
-}
-Parent module contains variables and locals:
-
-Variables like location, nic_names, and lb_name_prefix are defined in the parent module.
-hcl
-Copy code
-variable "location" {
-  type        = string
-  description = "location"
-}
-Parent module aggregates resources and modules:
-
-It manages data sources, outputs, and other resources (azurerm_lb, azurerm_lb_backend_address_pool).
-Child Module
-The child module (./LB-module) is a reusable configuration that is invoked by the parent module.
-It encapsulates a specific functionality (in this case, managing Azure Load Balancer resources).
-Characteristics in the Code:
-Child module contains reusable logic:
-
-The child module focuses solely on the logic for managing Azure Load Balancer components.
-Example: Probes, backend address pools, frontend configurations.
-Child module accepts inputs from the parent:
-
-The variables like nic_names, lb_probe_protocol, and location are passed down from the parent to the child module.
-These inputs are defined as variable blocks in the child module.
-hcl
-Copy code
-variable "nic_names" {
-  type        = string
-  description = "List of network interface names to query."
-}
-Child module outputs values to the parent:
-
-The child module can define output blocks to send information back to the parent module.
-hcl
-Copy code
-output "load_balancer_id" {
-  value = azurerm_lb.internal_lb.id
-}
-Child module defines the core resources:
-
-The core Azure Load Balancer resources, such as azurerm_lb, azurerm_lb_backend_address_pool, and azurerm_lb_rule, are defined in the child module.
-hcl
-Copy code
-resource "azurerm_lb" "internal_lb" {
-  name = var.lb_name
-  location = var.location
-  resource_group_name = var.resource_group
-  # Other properties...
-}
-Relationship
-Parent → Child Communication:
-The parent module defines the high-level logic and orchestrates multiple child modules.
-It passes necessary parameters to the child module using variables.
-Child → Parent Communication:
-The child module returns specific outputs to the parent module for further processing or use in other modules/resources.
-Benefits of the Parent-Child Module Approach
-Reusability:
-
-The child module can be reused in different environments (e.g., dev, uat, prod) by the parent module.
-Modularity:
-
-Each module has a clear boundary, making it easier to manage and understand the infrastructure code.
-Scalability:
-
-Adding new functionalities (e.g., another Load Balancer) only requires reusing the child module with different parameters.
-Separation of Concerns:
-
-The parent module focuses on orchestration, while the child module handles specific tasks.
-Let me know if you'd like to explore this further or refine the architecture!
-
-
-
-
-
-
-
+ Error: Either an Access Key / SAS Token or the Resource Group for the Storage Account must be specified - or Azure AD Authentication must be enabled
+│ 
