@@ -1,53 +1,182 @@
-Step 1: Open Terminal
-Press Cmd (⌘) + Space, type Terminal, and press Enter.
-Or, open Terminal from Applications → Utilities.
-Step 2: Install Xcode Command Line Tools
-Before installing Homebrew, you need Xcode Command Line Tools.
-
-Run this command in Terminal:
-
-sh
-Copy code
-xcode-select --install
-Click Install in the pop-up window.
-Wait for the installation to finish.
-👉 To check if it's installed, run:
-
-sh
-Copy code
-xcode-select -p
-If it returns a path like /Library/Developer/CommandLineTools, you're good to go!
-
-Step 3: Install Homebrew
-Run this command in Terminal:
-
-sh
-Copy code
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-This script downloads and installs Homebrew.
-Follow the on-screen instructions (it may ask for your password).
-Step 4: Add Homebrew to Your PATH
-After installation, Homebrew might tell you to add it to your shell configuration.
-
-For zsh (default shell on macOS Catalina and later), run:
-
-sh
-Copy code
-echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zshrc
-source ~/.zshrc
-For bash (older macOS versions), run:
-
-sh
-Copy code
-echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.bash_profile
-source ~/.bash_profile
-Step 5: Verify the Installation
-Check if Homebrew is installed correctly:
-
-sh
-Copy code
-brew --version
-✅ You should see the version number (e.g., Homebrew 4.0.0).
-
-Step 6: Test Homebrew by Installing a Package
-To test, install a simple package like wget:
+Started by user admin1
+ > git rev-parse --resolve-git-dir /var/lib/jenkins/caches/git-d5fade11b23dd5234fca8c98def1ee47/.git # timeout=10
+Setting origin to https://github.tools.sap/Ariba-infra/tools.git
+ > git config remote.origin.url https://github.tools.sap/Ariba-infra/tools.git # timeout=10
+Fetching origin...
+Fetching upstream changes from origin
+ > git --version # timeout=10
+ > git --version # 'git version 2.34.1'
+ > git config --get remote.origin.url # timeout=10
+using GIT_ASKPASS to set credentials Used to auth github tools
+ > git fetch --tags --force --progress -- origin +refs/heads/*:refs/remotes/origin/* # timeout=10
+Seen branch in repository origin/AppDeploy
+Seen branch in repository origin/AppDeployV0
+Seen branch in repository origin/CBLT-31783-patch-1
+Seen branch in repository origin/Certificate/Inventory
+Seen branch in repository origin/Clusters/AutomatedClusterProvision
+Seen branch in repository origin/Clusters/StoreDCDataToGCS
+Seen branch in repository origin/ConfigureLocalVault
+Seen branch in repository origin/DSA/DestroyDSA
+Seen branch in repository origin/DeployMdsXsaHana
+Seen branch in repository origin/DestroyPod
+Seen branch in repository origin/EMC/Onboarding
+Seen branch in repository origin/Hashi/AnalyseJobs
+Seen branch in repository origin/Hashi/CreatePartnerQuery
+Seen branch in repository origin/Hashi/DeregisterCatalogService
+Seen branch in repository origin/Hashi/RegisterCatalogService
+Seen branch in repository origin/Hashi/RemoveMarkAsDefault
+Seen branch in repository origin/Hashi/RestartJob
+Seen branch in repository origin/Hashi/ResubmitJob
+Seen branch in repository origin/Hashi/SetMaxUploadLimit
+Seen branch in repository origin/Infra/GenerateCertificate
+Seen branch in repository origin/Jenkins/ClearConfigCache
+Seen branch in repository origin/K8s/GenerateAdminKubeconfig
+Seen branch in repository origin/K8s/GenerateKubeCredentials
+Seen branch in repository origin/K8s/ManageExternalServices
+Seen branch in repository origin/K8s/StoreCertificate
+Seen branch in repository origin/KMS/KeyRotation
+Seen branch in repository origin/KMS/MigrateCorestackKey
+Seen branch in repository origin/KMS/MigrateKey
+Seen branch in repository origin/MarkAsDefault
+Seen branch in repository origin/PublishDockerArtifacts
+Seen branch in repository origin/Readme
+Seen branch in repository origin/RegisterCSIVolume
+Seen branch in repository origin/SCP/InstallServiceCatalog
+Seen branch in repository origin/SCP/ProvisionCFService
+Seen branch in repository origin/SCP/ProvisionServiceManager
+Seen branch in repository origin/SCP/RegisterAppFamily
+Seen branch in repository origin/SCP/RegisterAppFamily_SkipValidation
+Seen branch in repository origin/SCP/RegisterSmctlBroker
+Seen branch in repository origin/SyncCobaltHelmFromRegistry
+Seen branch in repository origin/SyncCobaltReposFromRegistry
+Seen branch in repository origin/SyncImagesFromDistribution
+Seen branch in repository origin/TMS/ConfigureSchemas
+Seen branch in repository origin/Vault/StoreCACertificate
+Seen 43 remote branches
+Obtained Jenkinsfile from f3c6ed199ea5ae7a73252177b47d28f8ef73373d
+Loading library PipelineLibrary@develop
+Attempting to resolve develop from remote references...
+ > git --version # timeout=10
+ > git --version # 'git version 2.34.1'
+using GIT_ASKPASS to set credentials Used to auth github tools
+ > git ls-remote -h -- https://github.tools.sap/Ariba-cobalt/pipeline-library.git # timeout=10
+Found match: refs/heads/develop revision da0ef5a698377b879ff7a67f2a6d46271c41f1fd
+The recommended git tool is: git
+using credential HttpsGitToolsCredential
+ > git rev-parse --resolve-git-dir /var/lib/jenkins/workspace/Tools_SCP_RegisterAppFamily@libs/ee02993765150e102edc87a4f8ccaadfd686e19972ce72b7afc4959d29a2d38b/.git # timeout=10
+Fetching changes from the remote Git repository
+ > git config remote.origin.url https://github.tools.sap/Ariba-cobalt/pipeline-library.git # timeout=10
+Fetching without tags
+Fetching upstream changes from https://github.tools.sap/Ariba-cobalt/pipeline-library.git
+ > git --version # timeout=10
+ > git --version # 'git version 2.34.1'
+using GIT_ASKPASS to set credentials Used to auth github tools
+ > git fetch --no-tags --force --progress -- https://github.tools.sap/Ariba-cobalt/pipeline-library.git +refs/heads/*:refs/remotes/origin/* # timeout=10
+Checking out Revision da0ef5a698377b879ff7a67f2a6d46271c41f1fd (develop)
+ > git config core.sparsecheckout # timeout=10
+ > git checkout -f da0ef5a698377b879ff7a67f2a6d46271c41f1fd # timeout=10
+Commit message: "CBLT-31646 decommission fortify (#2697)"
+[Pipeline] Start of Pipeline
+[Pipeline] properties
+[Pipeline] node
+Running on Jenkins in /var/lib/jenkins/workspace/Tools_SCP_RegisterAppFamily
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Declarative: Checkout SCM)
+[Pipeline] checkout
+Selected Git installation does not exist. Using Default
+The recommended git tool is: NONE
+using credential HttpsGitToolsCredential
+ > git rev-parse --resolve-git-dir /var/lib/jenkins/workspace/Tools_SCP_RegisterAppFamily/.git # timeout=10
+Fetching changes from the remote Git repository
+ > git config remote.origin.url https://github.tools.sap/Ariba-infra/tools.git # timeout=10
+Fetching without tags
+Fetching upstream changes from https://github.tools.sap/Ariba-infra/tools.git
+ > git --version # timeout=10
+ > git --version # 'git version 2.34.1'
+using GIT_ASKPASS to set credentials Used to auth github tools
+ > git fetch --no-tags --force --progress -- https://github.tools.sap/Ariba-infra/tools.git +refs/heads/*:refs/remotes/origin/* # timeout=10
+Checking out Revision f3c6ed199ea5ae7a73252177b47d28f8ef73373d (SCP/RegisterAppFamily)
+ > git config core.sparsecheckout # timeout=10
+ > git checkout -f f3c6ed199ea5ae7a73252177b47d28f8ef73373d # timeout=10
+Commit message: "Update EgressServiceEntry.yml (#357)"
+ > git rev-list --no-walk f3c6ed199ea5ae7a73252177b47d28f8ef73373d # timeout=10
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Execute)
+[Pipeline] echo
+[INFO][08:18] Not triggered by SCM change
+[Pipeline] script
+[Pipeline] {
+[Pipeline] pwd
+[Pipeline] configFileProvider
+provisioning config files...
+copy managed file [cache_6BC7B1451D536A9C4408D9DDBEFD7F1E_updated] to file:/var/lib/jenkins/workspace/Tools_SCP_RegisterAppFamily/config-files/cache_6BC7B1451D536A9C4408D9DDBEFD7F1E_updated
+[Pipeline] {
+[Pipeline] readFile
+[Pipeline] }
+[Pipeline] // configFileProvider
+[Pipeline] configFileProvider
+provisioning config files...
+copy managed file [cache_6BC7B1451D536A9C4408D9DDBEFD7F1E] to file:/var/lib/jenkins/workspace/Tools_SCP_RegisterAppFamily/config-files/cache_6BC7B1451D536A9C4408D9DDBEFD7F1E
+[Pipeline] {
+[Pipeline] readFile
+[Pipeline] }
+[Pipeline] // configFileProvider
+[Pipeline] readYaml
+[Pipeline] }
+[Pipeline] // script
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // node
+[Pipeline] End of Pipeline
+Also:   org.jenkinsci.plugins.workflow.actions.ErrorAction$ErrorId: 7a2603e8-f755-47e0-882b-49d5af3f6db5
+java.lang.NullPointerException: Cannot get property 'k8s' on null object
+	at org.codehaus.groovy.runtime.NullObject.getProperty(NullObject.java:60)
+	at org.codehaus.groovy.runtime.InvokerHelper.getProperty(InvokerHelper.java:190)
+	at org.codehaus.groovy.runtime.ScriptBytecodeAdapter.getProperty(ScriptBytecodeAdapter.java:469)
+	at com.cloudbees.groovy.cps.sandbox.DefaultInvoker.getProperty(DefaultInvoker.java:39)
+	at org.jenkinsci.plugins.workflow.cps.LoggingInvoker.getProperty(LoggingInvoker.java:121)
+	at com.cloudbees.groovy.cps.impl.PropertyAccessBlock.rawGet(PropertyAccessBlock.java:20)
+	at com.sap.ms.Env.getLandscape(Env.groovy:543)
+	at com.sap.ms.K8s.validateNamespace(K8s.groovy:51)
+	at WorkflowScript.run(WorkflowScript:46)
+	at ___cps.transform___(Native Method)
+	at com.cloudbees.groovy.cps.impl.PropertyishBlock$ContinuationImpl.get(PropertyishBlock.java:73)
+	at com.cloudbees.groovy.cps.LValueBlock$GetAdapter.receive(LValueBlock.java:30)
+	at com.cloudbees.groovy.cps.impl.PropertyishBlock$ContinuationImpl.fixName(PropertyishBlock.java:65)
+	at jdk.internal.reflect.GeneratedMethodAccessor392.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at com.cloudbees.groovy.cps.impl.ContinuationPtr$ContinuationImpl.receive(ContinuationPtr.java:72)
+	at com.cloudbees.groovy.cps.impl.ConstantBlock.eval(ConstantBlock.java:21)
+	at com.cloudbees.groovy.cps.Next.step(Next.java:83)
+	at com.cloudbees.groovy.cps.Continuable$1.call(Continuable.java:152)
+	at com.cloudbees.groovy.cps.Continuable$1.call(Continuable.java:146)
+	at org.codehaus.groovy.runtime.GroovyCategorySupport$ThreadCategoryInfo.use(GroovyCategorySupport.java:136)
+	at org.codehaus.groovy.runtime.GroovyCategorySupport.use(GroovyCategorySupport.java:275)
+	at com.cloudbees.groovy.cps.Continuable.run0(Continuable.java:146)
+	at org.jenkinsci.plugins.workflow.cps.SandboxContinuable.access$001(SandboxContinuable.java:18)
+	at org.jenkinsci.plugins.workflow.cps.SandboxContinuable.run0(SandboxContinuable.java:51)
+	at org.jenkinsci.plugins.workflow.cps.CpsThread.runNextChunk(CpsThread.java:187)
+	at org.jenkinsci.plugins.workflow.cps.CpsThreadGroup.run(CpsThreadGroup.java:423)
+	at org.jenkinsci.plugins.workflow.cps.CpsThreadGroup$2.call(CpsThreadGroup.java:331)
+	at org.jenkinsci.plugins.workflow.cps.CpsThreadGroup$2.call(CpsThreadGroup.java:295)
+	at org.jenkinsci.plugins.workflow.cps.CpsVmExecutorService$2.call(CpsVmExecutorService.java:97)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at hudson.remoting.SingleLaneExecutorService$1.run(SingleLaneExecutorService.java:139)
+	at jenkins.util.ContextResettingExecutorService$1.run(ContextResettingExecutorService.java:28)
+	at jenkins.security.ImpersonatingExecutorService$1.run(ImpersonatingExecutorService.java:68)
+	at jenkins.util.ErrorLoggingExecutorService.lambda$wrap$0(ErrorLoggingExecutorService.java:51)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:539)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+	at java.base/java.lang.Thread.run(Thread.java:833)
+Finished: FAILURE
