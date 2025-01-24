@@ -1,1 +1,1 @@
-I am still encountering this issue as Git has not yet appeared in my Software Center. I kindly request that this matter be prioritized for urgent resolution, as Git is essential for me to perform my duties effectively as a software engineer.
+@Thejeswara Reddy Byreddy @Thejeswara Reddy Byreddy  please help confirm  from SCCM end. I don’t want the issue to extend to next week. I need a quick resolution as its really affecting my productivity.
