@@ -1,1 +1,1 @@
-I am still having this issue as Git is yet to appear in my Software Center. I will appreciate if this problem can be prioritized for urgent resolution. As a software engineer, I am not able to perform my duties without git.
+I am still encountering this issue as Git has not yet appeared in my Software Center. I kindly request that this matter be prioritized for urgent resolution, as Git is essential for me to perform my duties effectively as a software engineer.
