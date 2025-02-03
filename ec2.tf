@@ -1,14 +1,15 @@
-Subject: Urgent Request to Increase Priority of Incident Ticket
+Subject: Issue with GitHub Action Workflow Secret – Invalid ARM_CLIENT_ID and ARM_CLIENT_SECRET
 
-Hi Janagan,
+Hi Box Core Team,
 
-I hope you're doing well.
+I hope you are doing well.
 
-I wanted to follow up regarding my incident ticket [Ticket ID: XXXX], which has been blocking my work for over two weeks now. Given the impact on my productivity and project timelines, I would appreciate it if you could increase the priority of this ticket so that it can be resolved as soon as possible.
+I am reaching out to report an issue I am encountering with my GitHub Action workflow. When I run the workflow, I receive an error stating "Invalid secret: ARM_CLIENT_ID and ARM_CLIENT_SECRET."
 
-Please let me know if you need any additional details from my end to expedite the process. I appreciate your support and look forward to your response.
+I have not made any changes to the workflow configuration, and these secrets were previously working fine. Could you please help me investigate if there are any issues with the repository secrets, permissions, or if any recent changes might have affected their validity?
+
+Let me know if you need any additional details from my end to assist in troubleshooting. I appreciate your support and look forward to your response.
 
 Best regards,
 [Your Name]
-[Your Contact Information]
-[Your Team/Department]
+[Your Team/Project Name]
