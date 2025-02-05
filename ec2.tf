@@ -1,64 +1,28 @@
-Solution for Terraform Error: subscription_id is a required provider property
-The error indicates that Terraform requires an explicit subscription_id in the provider configuration for Azure Resource Manager (azurerm).
+kubectl get secrets --all-namespaces -o json | jq -r '.items[] | select(.type=="kubernetes.io/tls") | .metadata.namespace + "/" + .metadata.name'
 
-Steps to Fix the Issue
-1. Explicitly Set subscription_id in Provider Block
-Modify your provider "azurerm" block to explicitly set the subscription_id, using the data.azurerm_subscription.current.id value you are already retrieving.
 
-hcl
-Copy
-Edit
-provider "azurerm" {
-  features {}
-  subscription_id = data.azurerm_subscription.current.subscription_id
-}
-However, data.azurerm_subscription.current.subscription_id is invalid because the correct field is simply .id. Update it as follows:
 
-hcl
-Copy
-Edit
-provider "azurerm" {
-  features {}
-  subscription_id = data.azurerm_subscription.current.id
-}
-2. Use Environment Variables for Authentication (Recommended)
-Instead of hardcoding the subscription ID, set the following environment variables to ensure Terraform correctly authenticates:
+#!/bin/bash
 
-sh
-Copy
-Edit
-export ARM_CLIENT_ID="your-client-id"
-export ARM_CLIENT_SECRET="your-client-secret"
-export ARM_SUBSCRIPTION_ID="your-subscription-id"
-export ARM_TENANT_ID="your-tenant-id"
-Then, run Terraform again:
+# Get all TLS secrets
+secrets=$(kubectl get secrets --all-namespaces -o json | jq -r '.items[] | select(.type=="kubernetes.io/tls") | .metadata.namespace + "/" + .metadata.name')
 
-sh
-Copy
-Edit
-terraform init
-terraform plan
-terraform apply
-3. Verify That Authentication Works
-To confirm that Terraform is authenticated correctly, try running:
+for secret in $secrets; do
+    namespace=$(echo $secret | cut -d'/' -f1)
+    name=$(echo $secret | cut -d'/' -f2)
 
-sh
-Copy
-Edit
-az login
-az account show
-Make sure the correct subscription ID is displayed.
+    # Extract the certificate
+    cert=$(kubectl get secret -n $namespace $name -o jsonpath='{.data.tls\.crt}' | base64 --decode)
 
-Final Updated Provider Block
-hcl
-Copy
-Edit
-provider "azurerm" {
-  features {}
-  subscription_id = data.azurerm_subscription.current.id
-}
-Why This Works
-The subscription_id property is required by Terraform when interacting with Azure.
-The data.azurerm_subscription.current.id correctly fetches the current subscription ID dynamically.
-Setting environment variables ensures credentials are available without hardcoding.
-Try these steps and let me know if you need further assistance! 🚀
+    # Get the expiry date
+    expiry_date=$(echo "$cert" | openssl x509 -enddate -noout | cut -d'=' -f2)
+    expiry_epoch=$(date -d "$expiry_date" +%s)
+    current_epoch=$(date +%s)
+
+    # Check if the certificate is expired
+    if [ $expiry_epoch -lt $current_epoch ]; then
+        echo "Certificate in secret $name in namespace $namespace is EXPIRED. Expiry date: $expiry_date"
+    else
+        echo "Certificate in secret $name in namespace $namespace is valid. Expiry date: $expiry_date"
+    fi
+done
