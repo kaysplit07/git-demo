@@ -1,12 +1,1 @@
-kubectl exec -it buyer-cms-content-management-64db69d9f8-hds5v -n family-buyer-cms -- sh -c '
-for cert in /etc/ssl/certs/*.crt; do
-    if [ -f "$cert" ]; then
-        expiry_date=$(openssl x509 -in "$cert" -noout -enddate 2>/dev/null | cut -d= -f2)
-        expiry_timestamp=$(date -d "$expiry_date" +%s 2>/dev/null)
-        current_timestamp=$(date +%s)
-
-        if [ -n "$expiry_timestamp" ] && [ "$expiry_timestamp" -lt "$current_timestamp" ]; then
-            echo "❌ EXPIRED: $cert - Expired on $expiry_date"
-        fi
-    fi
-done'
+kubectl exec -it buyer-cms-content-management-64db69d9f8-hds5v -n family-buyer-cms -- sh -c "openssl x509 -in /etc/ssl/certs/<your-cert>.crt -noout -text"
