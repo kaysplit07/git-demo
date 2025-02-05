@@ -1,28 +1,39 @@
-kubectl get secrets --all-namespaces -o json | jq -r '.items[] | select(.type=="kubernetes.io/tls") | .metadata.namespace + "/" + .metadata.name'
-
-
-
-#!/bin/bash
-
-# Get all TLS secrets
-secrets=$(kubectl get secrets --all-namespaces -o json | jq -r '.items[] | select(.type=="kubernetes.io/tls") | .metadata.namespace + "/" + .metadata.name')
-
-for secret in $secrets; do
-    namespace=$(echo $secret | cut -d'/' -f1)
-    name=$(echo $secret | cut -d'/' -f2)
-
-    # Extract the certificate
-    cert=$(kubectl get secret -n $namespace $name -o jsonpath='{.data.tls\.crt}' | base64 --decode)
-
-    # Get the expiry date
-    expiry_date=$(echo "$cert" | openssl x509 -enddate -noout | cut -d'=' -f2)
-    expiry_epoch=$(date -d "$expiry_date" +%s)
-    current_epoch=$(date +%s)
-
-    # Check if the certificate is expired
-    if [ $expiry_epoch -lt $current_epoch ]; then
-        echo "Certificate in secret $name in namespace $namespace is EXPIRED. Expiry date: $expiry_date"
-    else
-        echo "Certificate in secret $name in namespace $namespace is valid. Expiry date: $expiry_date"
+kubectl get secrets --all-namespaces -o json | jq -r '
+.items[] |
+select(.type=="kubernetes.io/tls") |
+[.metadata.namespace, .metadata.name, .data["tls.crt"]]
+' | while read -r namespace name cert; do
+    if [ -n "$cert" ]; then
+        echo "🔍 Checking certificate in $namespace/$name..."
+        echo "$cert" | base64 --decode | openssl x509 -noout -dates
     fi
 done
+
+
+
+#################
+
+kubectl get secrets --all-namespaces -o json | jq -r '
+.items[] |
+select(.type=="kubernetes.io/tls") |
+[.metadata.namespace, .metadata.name, .data["tls.crt"]]
+' | while read -r namespace name cert; do
+    if [ -n "$cert" ]; then
+        expiry_date=$(echo "$cert" | base64 --decode | openssl x509 -noout -enddate | cut -d= -f2)
+        expiry_timestamp=$(date -d "$expiry_date" +%s)
+        current_timestamp=$(date +%s)
+        days_remaining=$(( (expiry_timestamp - current_timestamp) / 86400 ))
+
+        if [ "$expiry_timestamp" -lt "$current_timestamp" ]; then
+            echo "❌ EXPIRED: $namespace/$name - Expired on $expiry_date"
+        elif [ "$days_remaining" -lt 30 ]; then
+            echo "⚠️  EXPIRING SOON: $namespace/$name - Expires in $days_remaining days ($expiry_date)"
+        else
+            echo "✅ VALID: $namespace/$name - Expires on $expiry_date"
+        fi
+    fi
+done
+
+
+
+
