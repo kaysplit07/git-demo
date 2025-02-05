@@ -1,19 +1,12 @@
-our branch is ahead of 'origin/main' by 1 commit.
-  (use "git push" to publish your local commits)
+kubectl exec -it buyer-cms-content-management-64db69d9f8-hds5v -n family-buyer-cms -- sh -c '
+for cert in /etc/ssl/certs/*.crt; do
+    if [ -f "$cert" ]; then
+        expiry_date=$(openssl x509 -in "$cert" -noout -enddate 2>/dev/null | cut -d= -f2)
+        expiry_timestamp=$(date -d "$expiry_date" +%s 2>/dev/null)
+        current_timestamp=$(date +%s)
 
-You have unmerged paths.
-  (fix conflicts and run "git commit")
-  (use "git merge --abort" to abort the merge)
-
-Changes to be committed:
-        modified:   .github/workflows/Createmssqlserver.yml
-        modified:   .github/workflows/Deploy_WindowsVM.yml
-        modified:   .github/workflows/WindowsVMCreate.yml
-        modified:   .github/workflows/add-subnet.yml
-        modified:   Azure/parameters.csv
-        modified:   Azure/windows-vm/main.tf
-        modified:   Azure/windows-vm/variables.tf
-
-Unmerged paths:
-  (use "git add <file>..." to mark resolution)
-        both modified:   .github/workflows/mysql_server.yml
+        if [ -n "$expiry_timestamp" ] && [ "$expiry_timestamp" -lt "$current_timestamp" ]; then
+            echo "❌ EXPIRED: $cert - Expired on $expiry_date"
+        fi
+    fi
+done'
