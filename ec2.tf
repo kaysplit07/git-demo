@@ -39,3 +39,7 @@ python remove_duplicate_pem.py
 python3 remove_duplicate_pem.py
 /Library/Developer/CommandLineTools/usr/bin/python3: can't open file '/Users/C5392450/remove_duplicate_pem.py': [Errno 2] No such file or directory
 
+
+echo "BASE64_ENCODED_CERT" | base64 --decode > certificate.pem
+
+
