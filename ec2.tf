@@ -1,41 +1,36 @@
-✅ Steps to Decode and Store the Certificate Locally
-Extract the Base64-encoded certificate (if it's from Kubernetes)
-If the certificate is stored in a Kubernetes secret, retrieve it using:
+import re
 
-sh
-Copy
-Edit
-kubectl get secret <secret-name> -n <namespace> -o jsonpath="{.data.tls\.crt}" | base64 --decode > certificate.crt
-Decode a Manually Provided Base64 Certificate If you already have the Base64-encoded string, decode it using:
+def extract_certificates(cert_file):
+    """Extract individual certificates from a file."""
+    with open(cert_file, "r") as file:
+        content = file.read()
 
-sh
-Copy
-Edit
-echo '<BASE64_ENCODED_CERT>' | base64 --decode > decoded_certificate.crt
-Replace <BASE64_ENCODED_CERT> with your actual Base64 certificate string.
+    # Find all certificate blocks using regex
+    cert_pattern = re.findall(r"(-----BEGIN CERTIFICATE-----[\s\S]+?-----END CERTIFICATE-----)", content)
 
-Verify the Decoded Certificate Check if the file was correctly decoded:
+    return cert_pattern
 
-sh
-Copy
-Edit
-openssl x509 -in decoded_certificate.crt -text -noout
-If the certificate is valid, you should see the certificate details printed in the terminal.
+def remove_duplicates(certificates):
+    """Remove duplicate certificates based on content."""
+    unique_certs = list(set(certificates))  # Convert list to a set to remove duplicates
+    return unique_certs
 
-💡 Fixed Command Based on Your Example
-Your original command had a quote (quote>) issue. The correct command to decode your certificate is:
+def save_certificates(certificates, output_file):
+    """Save unique certificates back to a file."""
+    with open(output_file, "w") as file:
+        file.write("\n\n".join(certificates))  # Separate certificates by new lines
 
-sh
-Copy
-Edit
-echo "oxWXA4ZzdrYnl3ZzZqSEZoTk1aSwpSUFExcnI5..." | base64 --decode > cert_decoded.crt
-Then verify:
+    print(f"✅ Successfully saved unique certificates to {output_file}")
 
-sh
-Copy
-Edit
-openssl x509 -in cert_decoded.crt -text -noout
-🛠 Troubleshooting
-If you get "invalid input" errors, ensure the Base64 string has no extra spaces or line breaks.
-If the output file is empty, the Base64 string may be corrupted or incorrectly formatted.
-If it's a Kubernetes secret, retrieve it using kubectl get secret before decoding.
+# Input and output file names
+input_cert_file = "certificate.pem"  # Replace with your actual certificate file
+output_cert_file = "unique_certificate.pem"
+
+# Extract, deduplicate, and save
+certs = extract_certificates(input_cert_file)
+unique_certs = remove_duplicates(certs)
+save_certificates(unique_certs, output_cert_file)
+
+
+######
+python remove_duplicate_pem.py
