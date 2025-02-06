@@ -43,3 +43,13 @@ python3 remove_duplicate_pem.py
 echo "BASE64_ENCODED_CERT" | base64 --decode > certificate.pem
 
 
+base64 cert10-base64d-bkp.txt >  feb5-pp4-ca-cer10-bkp2.yaml
+base64: invalid argument cert10-base64d-bkp.txt
+Usage:	base64 [-Ddh] [-b num] [-i in_file] [-o out_file]
+  -b, --break    break encoded string into num character lines
+  -Dd, --decode   decodes input
+  -h, --help     display this message
+  -i, --input    input file (default: "-" for stdin)
+  -o, --output   output file (default: "-" for stdout)
+
+
