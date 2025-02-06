@@ -1,23 +1,19 @@
-kubectl exec -it buyer-cms-content-management-64db69d9f8-hds5v -n family-buyer-cms -- sh -c "openssl x509 -in /etc/ssl/certs/<your-cert>.crt -noout -text"
+Try this:
 
+bash
+Copy
+Edit
+base64 -i cert10-base64d-bkp.txt -o feb5-pp4-ca-cer10-bkp2.yaml
+Alternatively, if you are on Linux, the following command should work:
 
-kubectl exec -it buyer-cms-content-management-64db69d9f8-hds5v -n family-buyer-cms -- ls -l /etc/ssl/certs/
+bash
+Copy
+Edit
+base64 cert10-base64d-bkp.txt > feb5-pp4-ca-cer10-bkp2.yaml
+If you want the YAML format with a key:
 
-
-kubectl exec -it buyer-cms-content-management-64db69d9f8-hds5v -n family-buyer-cms -- sh -c '
-for cert in /etc/ssl/certs/*; do
-    if [ -f "$cert" ]; then
-        expiry_date=$(openssl x509 -in "$cert" -noout -enddate 2>/dev/null | cut -d= -f2)
-        expiry_timestamp=$(date -d "$expiry_date" +%s 2>/dev/null)
-        current_timestamp=$(date +%s)
-
-        if [ -n "$expiry_timestamp" ] && [ "$expiry_timestamp" -lt "$current_timestamp" ]; then
-            echo "❌ EXPIRED: $cert - Expired on $expiry_date"
-        fi
-    fi
-done'
-
-
-
-
-
+bash
+Copy
+Edit
+echo "cert: |" > feb5-pp4-ca-cer10-bkp2.yaml
+base64 cert10-base64d-bkp.txt | sed 's/^/  /' >> feb5-pp4-ca-cer10-bkp2.yaml
