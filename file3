@@ -14,15 +14,23 @@ SECRETS=("ca-cert10" "ca-cert11" "ca-cert12")  # Add more as needed
 
 # Iterate through the list of secrets
 for SECRET in "${SECRETS[@]}"; do
-    echo "Backing up $SECRET in PEM format..."
+    echo "Processing $SECRET..."
 
-    # Extract the Base64-encoded certificate from the secret
-    CERT_BASE64=$(kubectl get secret "$SECRET" -n "$NAMESPACE" -o jsonpath="{.data.tls\.crt}")
+    # Extract the Base64-encoded certificate(s) from the secret
+    CERTS_BASE64=$(kubectl get secret "$SECRET" -n "$NAMESPACE" -o jsonpath="{.data.tls\.crt}")
 
-    # Decode the Base64 certificate into PEM format
-    if [[ -n "$CERT_BASE64" ]]; then
+    # Check if the secret contains certificates
+    if [[ -n "$CERTS_BASE64" ]]; then
         echo -e "\n---\n$SECRET:" >> "$OUTPUT_FILE"
-        echo "$CERT_BASE64" | base64 --decode >> "$OUTPUT_FILE"
+        
+        # Decode and process each certificate
+        echo "$CERTS_BASE64" | base64 -d | awk '
+            BEGIN { cert_count=0; }
+            /-----BEGIN CERTIFICATE-----/ { cert_count++; print "---\nCertificate #" cert_count ":" }
+            { print }
+        ' >> "$OUTPUT_FILE"
+
+        echo -e "\n---\n" >> "$OUTPUT_FILE"  # Separator for readability
     else
         echo "Warning: No certificate found for $SECRET"
     fi
