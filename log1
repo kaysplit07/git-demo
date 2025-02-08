@@ -3,39 +3,41 @@
 # Input file containing multiple PEM certificates
 input_file="allcerts-base64d-unique.txt"
 
-# Split the file into individual certificates
-awk '
-  /-----BEGIN CERTIFICATE-----/{filename="cert" ++count ".pem"}
-  {print > filename}
-' < "$input_file"
+# Get the current date in seconds (UNIX timestamp)
+current_date=$(date +%s)
 
+# Temporary variable to store each certificate
+cert_content=""
+cert_found=false
+cert_count=0
 
-###########
-#!/bin/bash
+# Read the input file line by line
+while IFS= read -r line || [[ -n "$line" ]]; do
+    if [[ "$line" == "-----BEGIN CERTIFICATE-----" ]]; then
+        cert_found=true
+        cert_content="$line"
+    elif [[ "$line" == "-----END CERTIFICATE-----" ]]; then
+        cert_content+="\n$line"
 
-# Directory containing individual certificates
-cert_dir="."
+        # Check the expiration date of the certificate
+        expiry_date=$(echo -e "$cert_content" | openssl x509 -enddate -noout 2>/dev/null | cut -d= -f2)
+        expiry_timestamp=$(date -d "$expiry_date" +%s 2>/dev/null)
 
-# Loop through all certificate files
-for cert_file in "$cert_dir"/cert*.pem; do
-  echo "Checking $cert_file..."
+        # Check if expiry date conversion was successful
+        if [[ -n "$expiry_timestamp" ]] && [[ "$expiry_timestamp" -lt "$current_date" ]]; then
+            echo "Cert expired and not saved"
+        else
+            ((cert_count++))
+            cert_filename="cert${cert_count}.pem"
+            echo "Cert is valid and saved as $cert_filename"
+            echo -e "$cert_content" > "$cert_filename"
+        fi
 
-  # Get the expiry date
-  expiry_date=$(openssl x509 -enddate -noout -in "$cert_file" | cut -d= -f2)
-
-  # Convert expiry date to a timestamp
-  expiry_timestamp=$(date -d "$expiry_date" +%s)
-
-  # Get the current timestamp
-  current_timestamp=$(date +%s)
-
-  # Compare the timestamps
-  if [ "$expiry_timestamp" -lt "$current_timestamp" ]; then
-    echo "Certificate $cert_file has EXPIRED (Expiry Date: $expiry_date)."
-  else
-    echo "Certificate $cert_file is VALID (Expiry Date: $expiry_date)."
-  fi
-done
-
-
-##############
+        cert_content=""
+        cert_found=false
+    else
+        if $cert_found; then
+            cert_content+="\n$line"
+        fi
+    fi
+done < "$input_file"
