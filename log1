@@ -19,18 +19,22 @@ while IFS= read -r line || [[ -n "$line" ]]; do
     elif [[ "$line" == "-----END CERTIFICATE-----" ]]; then
         cert_content+="\n$line"
 
-        # Check the expiration date of the certificate
+        # Extract the expiration date of the certificate
         expiry_date=$(echo -e "$cert_content" | openssl x509 -enddate -noout 2>/dev/null | cut -d= -f2)
         expiry_timestamp=$(date -d "$expiry_date" +%s 2>/dev/null)
 
         # Check if expiry date conversion was successful
-        if [[ -n "$expiry_timestamp" ]] && [[ "$expiry_timestamp" -lt "$current_date" ]]; then
-            echo "Cert expired and not saved"
+        if [[ -n "$expiry_timestamp" ]]; then
+            if [[ "$expiry_timestamp" -lt "$current_date" ]]; then
+                echo "Cert expired on $expiry_date and not saved"
+            else
+                ((cert_count++))
+                cert_filename="cert${cert_count}.pem"
+                echo "Cert is valid until $expiry_date and saved as $cert_filename"
+                echo -e "$cert_content" > "$cert_filename"
+            fi
         else
-            ((cert_count++))
-            cert_filename="cert${cert_count}.pem"
-            echo "Cert is valid and saved as $cert_filename"
-            echo -e "$cert_content" > "$cert_filename"
+            echo "Could not determine expiry date. Skipping certificate."
         fi
 
         cert_content=""
