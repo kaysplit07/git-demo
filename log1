@@ -147,30 +147,53 @@ done
 echo " All certificates have been converted to YAML secrets in '$yaml_dir'."
 
 
+###########################
+
+#!/bin/bash
+
+# Directories for input PEM files and output YAML files
+pem_dir="PEM"
+yaml_dir="secrets"
+
+# Create the secrets directory if it does not exist
+mkdir -p "$yaml_dir"
+
+# Loop through all valid .pem certificates in the PEM directory
+for cert_file in "$pem_dir"/cert*.pem; do
+    if [[ -f "$cert_file" ]]; then
+        echo "Processing $cert_file..."
+
+        # Extract base64-encoded certificate data (cross-platform fix)
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            cert_base64=$(base64 -i "$cert_file" | tr -d '\n')  # macOS Fix
+        else
+            cert_base64=$(base64 -w 0 "$cert_file")  # Linux
+        fi
+
+        # Extract cert number from filename (e.g., cert1.pem → cert1)
+        cert_name=$(basename "$cert_file" .pem)
+
+        # Define YAML output file
+        yaml_file="$yaml_dir/$cert_name.yaml"
+
+        # Create YAML Secret file
+        cat <<EOF > "$yaml_file"
+apiVersion: v1
+data:
+  $cert_name: $cert_base64
+kind: Secret
+metadata:
+  name: $cert_name
+  namespace: cobalt
+  labels:
+    k8slens-edit-resource-version: v1
+type: Opaque
+EOF
+
+        echo "$cert_file converted to $yaml_file"
+    fi
+done
+
+echo "✅ All certificates have been converted to YAML secrets in '$yaml_dir'."
 
 
-
------BEGIN CERTIFICATE-----
-MIIECTCCAvGgAwIBAgIUDVDu/jsMMLen9/2w3a5/zquRBRAwDQYJKoZIhvcNAQEL
-BQAwbjELMAkGA1UEBhMCVVMxDDAKBgNVBAoTA1NBUDEUMBIGA1UECxMLRW5naW5l
-ZXJpbmcxOzA5BgNVBAMTMkFyaWJhIEVuZ2luZWVyaW5nIFRlc3QgQ0EgKG5vdCBm
-b3IgcHJvZHVjdGlvbiB1c2UpMB4XDTIzMTExMzIyMzc0OFoXDTI2MTExMjIyMzc0
-OFowZjELMAkGA1UEBhMCVVMxCzAJBgNVBAgMAkNBMR4wHAYDVQQKDBVBcmliYSwg
-YW4gU0FQIENvbXBhbnkxFTATBgNVBAsMDERhdGFTZXJ2aWNlczETMBEGA1UEAwwK
-cHJlcHJvZGZlZDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKx4ggMO
-FHQXAg++EpIEhG22u2eeH7D04s1x55B/QcDp2SKXP8gOZeMlDjr0TCu0w5b0DXrr
-jkTBKBRF/uZ6fcm+ZX9X/+M9J6Gt196tPwkzDyyI9o0GhGYnd614M8bx6uTnsaXc
-tIjCJcvRk0H7p7us3w3PSAiEEYvEcThB9mah/VcJmCCbdHfhf/PYQ+L0OzWn78FD
-3L7NDaZb4pVml5MlKahrq1+4x4asnKG3G0DpHbpZEVgbMcC7vmPXXsZALZFANJGq
-qebG6+69lUJ8Ub7qiKvdBnj6TjWm+zWsX5fL9TxbjqTn7p5WfchP66Vbw8XOaDC8
-mLZ8vTI5vGAsQIMCAwEAAaOBpjCBozB1BgNVHREEbjBsghsqLmRlZmF1bHQuc3Zj
-LmNsdXN0ZXIubG9jYWyCLWRldnVzLWZkMS1oYW5hLXMxLXoxLTAuYXJpYmEucHJl
-cHJvZC5zYXBuczIudYIYKi5hcmliYS5wcmVwcm9kLnNhcG5zMi51hwQKjQgGMAsG
-A1UdDwQEAwIDqDAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUHAwIwDQYJKoZI
-hvcNAQELBQADggEBAJdyciYZZkQ6/0zjIW6R0kCSI2cL8oE2B9ef080sSkdRjOoB
-Azn2I5nOw84A7p1MWdE8Cqh/wsPg4yHNnedXxwl0pbyJwhHXnoZnTimFsEnnExRQ
-8C/HES5WlDsCP4aFtzTO4HRS6N3IGE2DYyrwNgPvLvaMnIucrQmL1DBW0vXnW+Er
-NubWG1C7ZH0IZjn3JA5hhESfqw6z16LpIMUCjkJdJxNt+ICkN2H9EW991VJb2KnP
-amnaurmK2knD4OVm8029wjMsja3AjpY6DL83aWBtY2+OfxDrtVDNKms+XtzZyt5I
-/A0sRmNfJxyTPX1tfod+bgUck+ra5ZMENhE8Lsk=
------END CERTIFICATE-----
