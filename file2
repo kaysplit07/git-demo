@@ -1,19 +1,22 @@
-Try this:
+#!/bin/bash
 
-bash
-Copy
-Edit
-base64 -i cert10-base64d-bkp.txt -o feb5-pp4-ca-cer10-bkp2.yaml
-Alternatively, if you are on Linux, the following command should work:
+# Namespace
+NAMESPACE="cobalt"
 
-bash
-Copy
-Edit
-base64 cert10-base64d-bkp.txt > feb5-pp4-ca-cer10-bkp2.yaml
-If you want the YAML format with a key:
+# Output file
+OUTPUT_FILE="feb5-pp4-ca-cert10.bkp.yml"
 
-bash
-Copy
-Edit
-echo "cert: |" > feb5-pp4-ca-cer10-bkp2.yaml
-base64 cert10-base64d-bkp.txt | sed 's/^/  /' >> feb5-pp4-ca-cer10-bkp2.yaml
+# List of secret names
+SECRETS=("ca-cert10" "ca-cert11" "ca-cert12")  # Add more as needed
+
+# Clear the output file before appending
+> "$OUTPUT_FILE"
+
+# Iterate through the list of secrets
+for SECRET in "${SECRETS[@]}"; do
+    echo "Backing up $SECRET..."
+    kubectl get secret "$SECRET" -n "$NAMESPACE" -o yaml >> "$OUTPUT_FILE"
+    echo -e "\n---\n" >> "$OUTPUT_FILE"  # Separator for readability
+done
+
+echo "Backup complete. Output saved in $OUTPUT_FILE."
