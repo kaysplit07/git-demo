@@ -45,3 +45,14 @@ while IFS= read -r line || [[ -n "$line" ]]; do
         fi
     fi
 done < "$input_file"
+
+#############
+
+
+Checking ./cert1.pem...
+date: illegal option -- d
+usage: date [-jnRu] [-I[date|hours|minutes|seconds]] [-f input_fmt]
+            [-r filename|seconds] [-v[+|-]val[y|m|w|d|H|M|S]]
+            [[[[mm]dd]HH]MM[[cc]yy][.SS] | new_date] [+output_fmt]
+check_expiry.sh: line 20: [: : integer expression expected
+Certificate ./cert1.pem is VALID (Expiry Date: Jul 19 04:58:02 2025 GMT).
