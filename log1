@@ -1,3 +1,47 @@
+#!/bin/bash
+
+# Namespace
+NAMESPACE="cobalt"
+
+# Output file where all decoded certs will be stored
+DECODED_CERT_FILE="allcerts-base64d-bkp.txt"
+DEDUPLICATED_CERT_FILE="allcerts-base64d-unique.txt"
+
+# List of secret names from ca-cert1 to ca-cert20
+SECRETS=()
+for i in {1..20}; do
+    SECRETS+=("ca-cert$i")
+done
+
+# Clear the output file before appending
+> "$DECODED_CERT_FILE"
+
+# Iterate through the list of secrets
+for SECRET in "${SECRETS[@]}"; do
+    echo "Processing $SECRET..."
+
+    # Extract all Base64-encoded values inside .data
+    CERTS_BASE64=$(kubectl get secret "$SECRET" -n "$NAMESPACE" -o json | jq -r '.data | to_entries[] | .value')
+
+    # Check if any certificate exists
+    if [[ -n "$CERTS_BASE64" ]]; then
+        echo "Decoding certificates from $SECRET..."
+
+        # Decode and append all certificates to the final file
+        echo "$CERTS_BASE64" | base64 -d >> "$DECODED_CERT_FILE"
+
+        # Add a separator for readability
+        echo -e "\n---\n" >> "$DECODED_CERT_FILE"
+    else
+        echo "Warning: No certificate found for $SECRET"
+    fi
+done
+
+echo "Backup complete. Decoded certificates saved in $DECODED_CERT_FILE."
+
+# Run Python script to remove duplicates
+echo "Removing duplicate certificates..."
+python3 - <<EOF
 import re
 
 def extract_certificates(cert_file):
@@ -23,10 +67,13 @@ def save_certificates(certificates, output_file):
     print(f"✅ Successfully saved unique certificates to {output_file}")
 
 # Input and output file names
-input_cert_file = "cert10-base64-new.txt"  # Replace with your actual certificate file
-output_cert_file = "cert10-base64-new.txt"
+input_cert_file = "$DECODED_CERT_FILE"
+output_cert_file = "$DEDUPLICATED_CERT_FILE"
 
 # Extract, deduplicate, and save
 certs = extract_certificates(input_cert_file)
 unique_certs = remove_duplicates(certs)
 save_certificates(unique_certs, output_cert_file)
+EOF
+
+echo "Deduplication complete. Unique certificates saved in $DEDUPLICATED_CERT_FILE."
