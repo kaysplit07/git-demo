@@ -20,3 +20,32 @@ for SECRET in "${SECRETS[@]}"; do
 done
 
 echo "Backup complete. Output saved in $OUTPUT_FILE."
+
+
+####################
+
+#!/bin/bash
+
+# Namespace
+NAMESPACE="cobalt"
+
+# Output file
+OUTPUT_FILE="feb5-pp4-ca-cert10.bkp.yml"
+
+# List of secret names
+SECRETS=("ca-cert10" "ca-cert11" "ca-cert12")  # Add more secrets as needed
+
+# Clear the output file before appending
+> "$OUTPUT_FILE"
+
+# Iterate through the list of secrets
+for SECRET in "${SECRETS[@]}"; do
+    echo "Backing up $SECRET in Base64 format..."
+
+    # Extract the secret's data and re-encode it in Base64
+    kubectl get secret "$SECRET" -n "$NAMESPACE" -o json | jq 'del(.metadata, .type) | .data' >> "$OUTPUT_FILE"
+    
+    echo -e "\n---\n" >> "$OUTPUT_FILE"  # Separator for readability
+done
+
+echo "Backup complete. Output saved in $OUTPUT_FILE."
