@@ -3,37 +3,34 @@
 # Namespace
 NAMESPACE="cobalt"
 
-# Output file
-OUTPUT_FILE="feb5-pp4-ca-cert10.bkp.yml"
+# Output file where all decoded certs will be stored
+DECODED_CERT_FILE="cert10-base64d-bkp.txt"
 
 # List of secret names
 SECRETS=("ca-cert10" "ca-cert11" "ca-cert12")  # Add more as needed
 
 # Clear the output file before appending
-> "$OUTPUT_FILE"
+> "$DECODED_CERT_FILE"
 
 # Iterate through the list of secrets
 for SECRET in "${SECRETS[@]}"; do
     echo "Processing $SECRET..."
 
-    # Extract the Base64-encoded certificate(s) from the secret
-    CERTS_BASE64=$(kubectl get secret "$SECRET" -n "$NAMESPACE" -o jsonpath="{.data.tls\.crt}")
+    # Extract the Base64-encoded certificate from the Kubernetes secret
+    CERT_BASE64=$(kubectl get secret "$SECRET" -n "cobalt" -o jsonpath="{.data.$SECRET}")
 
-    # Check if the secret contains certificates
-    if [[ -n "$CERTS_BASE64" ]]; then
-        echo -e "\n---\n$SECRET:" >> "$OUTPUT_FILE"
-        
-        # Decode and process each certificate
-        echo "$CERTS_BASE64" | base64 -d | awk '
-            BEGIN { cert_count=0; }
-            /-----BEGIN CERTIFICATE-----/ { cert_count++; print "---\nCertificate #" cert_count ":" }
-            { print }
-        ' >> "$OUTPUT_FILE"
+    # Check if the secret contains a certificate
+    if [[ -n "$CERT_BASE64" ]]; then
+        echo "Decoding $SECRET..."
 
-        echo -e "\n---\n" >> "$OUTPUT_FILE"  # Separator for readability
+        # Decode the Base64 certificate and append it to the final file
+        echo "$CERT_BASE64" | base64 -d >> "$DECODED_CERT_FILE"
+
+        # Add a separator for readability
+        echo -e "\n---\n" >> "$DECODED_CERT_FILE"
     else
         echo "Warning: No certificate found for $SECRET"
     fi
 done
 
-echo "Backup complete. Output saved in $OUTPUT_FILE."
+echo "Backup complete. Decoded certificates saved in $DECODED_CERT_FILE."
