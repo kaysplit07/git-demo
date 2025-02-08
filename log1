@@ -48,3 +48,50 @@ while IFS= read -r line || [[ -n "$line" ]]; do
         fi
     fi
 done < "$input_file"
+
+
+###################
+
+#!/bin/bash
+
+# Directories for input PEM files and output YAML files
+pem_dir="PEM"
+yaml_dir="secrets"
+
+# Create the secrets directory if it does not exist
+mkdir -p "$yaml_dir"
+
+# Loop through all valid .pem certificates in the PEM directory
+for cert_file in "$pem_dir"/cert*.pem; do
+    if [[ -f "$cert_file" ]]; then
+        echo "Processing $cert_file..."
+
+        # Extract base64-encoded certificate data
+        cert_base64=$(base64 -w 0 "$cert_file")  # Linux
+        # cert_base64=$(base64 "$cert_file" | tr -d '\n')  # macOS
+
+        # Extract cert number from filename (e.g., cert1.pem → cert1)
+        cert_name=$(basename "$cert_file" .pem)
+
+        # Define YAML output file
+        yaml_file="$yaml_dir/$cert_name.yaml"
+
+        # Create YAML Secret file
+        cat <<EOF > "$yaml_file"
+apiVersion: v1
+data:
+  $cert_name: $cert_base64
+kind: Secret
+metadata:
+  name: $cert_name
+  namespace: cobalt
+  labels:
+    k8slens-edit-resource-version: v1
+type: Opaque
+EOF
+
+        echo "$cert_file converted to $yaml_file"
+    fi
+done
+
+echo "✅ All certificates have been converted to YAML secrets in '$yaml_dir'."
