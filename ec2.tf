@@ -1,55 +1,72 @@
-import re
+pip install pandas kubernetes cryptography pyopenssl
 
-def extract_certificates(cert_file):
-    """Extract individual certificates from a file."""
-    with open(cert_file, "r") as file:
-        content = file.read()
+###################
+import json
+import base64
+import subprocess
+import pandas as pd
+from kubernetes import client, config
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
 
-    # Find all certificate blocks using regex
-    cert_pattern = re.findall(r"(-----BEGIN CERTIFICATE-----[\s\S]+?-----END CERTIFICATE-----)", content)
+# Load Kubernetes config
+config.load_kube_config()  # Use this if running locally; use config.load_incluster_config() if running inside a cluster
 
-    return cert_pattern
+# Define namespace
+NAMESPACE = "your-namespace"  # Change to your desired namespace
 
-def remove_duplicates(certificates):
-    """Remove duplicate certificates based on content."""
-    unique_certs = list(set(certificates))  # Convert list to a set to remove duplicates
-    return unique_certs
+# Initialize Kubernetes API client
+v1 = client.CoreV1Api()
 
-def save_certificates(certificates, output_file):
-    """Save unique certificates back to a file."""
-    with open(output_file, "w") as file:
-        file.write("\n\n".join(certificates))  # Separate certificates by new lines
+# Get all secrets in the namespace
+secrets = v1.list_namespaced_secret(NAMESPACE)
 
-    print(f"✅ Successfully saved unique certificates to {output_file}")
+# List to store certificate details
+certs_list = []
 
-# Input and output file names
-input_cert_file = "certificate.pem"  # Replace with your actual certificate file
-output_cert_file = "unique_certificate.pem"
+for secret in secrets.items:
+    if secret.type == "kubernetes.io/tls":
+        cert_name = secret.metadata.name
+        cert_data = secret.data.get("tls.crt")
 
-# Extract, deduplicate, and save
-certs = extract_certificates(input_cert_file)
-unique_certs = remove_duplicates(certs)
-save_certificates(unique_certs, output_cert_file)
+        if cert_data:
+            # Decode base64 certificate
+            cert_bytes = base64.b64decode(cert_data)
+
+            try:
+                # Load certificate using cryptography library
+                cert = x509.load_pem_x509_certificate(cert_bytes, default_backend())
+
+                # Extract certificate details
+                cert_info = {
+                    "Secret Name": cert_name,
+                    "Subject": cert.subject.rfc4514_string(),
+                    "Issuer": cert.issuer.rfc4514_string(),
+                    "Valid From": cert.not_valid_before.strftime("%Y-%m-%d %H:%M:%S"),
+                    "Valid Until": cert.not_valid_after.strftime("%Y-%m-%d %H:%M:%S"),
+                    "Serial Number": hex(cert.serial_number),
+                    "Signature Algorithm": cert.signature_hash_algorithm.name
+                }
+
+                certs_list.append(cert_info)
+
+            except Exception as e:
+                print(f"❌ Error processing certificate in secret {cert_name}: {e}")
+
+# Convert to DataFrame
+df = pd.DataFrame(certs_list)
+
+# Save to Excel file
+output_file = "kubernetes_certificates.xlsx"
+df.to_excel(output_file, index=False)
+
+print(f"✅ Certificate details saved to {output_file}")
 
 
-######
-python remove_duplicate_pem.py
+#############################
 
+python list_k8s_certs.py
 
-python3 remove_duplicate_pem.py
-/Library/Developer/CommandLineTools/usr/bin/python3: can't open file '/Users/C5392450/remove_duplicate_pem.py': [Errno 2] No such file or directory
-
-
-echo "BASE64_ENCODED_CERT" | base64 --decode > certificate.pem
-
-
-base64 cert10-base64d-bkp.txt >  feb5-pp4-ca-cer10-bkp2.yaml
-base64: invalid argument cert10-base64d-bkp.txt
-Usage:	base64 [-Ddh] [-b num] [-i in_file] [-o out_file]
-  -b, --break    break encoded string into num character lines
-  -Dd, --decode   decodes input
-  -h, --help     display this message
-  -i, --input    input file (default: "-" for stdin)
-  -o, --output   output file (default: "-" for stdout)
+#################
 
 
