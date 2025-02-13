@@ -1,107 +1,94 @@
-name: 'Deploy MSSQL Database'
-run-name: '${{ github.actor }} - Deploying to_${{ inputs.subscription }}_${{ inputs.environment }}'
-
+name: 'Deploy SQL Failover Group'
+run-name: '${{github.actor}} - Deployingto_${{inputs.subscription}}_${{inputs.environment}}'
 on:
   workflow_dispatch:
-    inputs:
-      requesttype:
-        type: choice
-        required: true
-        description: Request Type
-        options:
-          - Create
-          - Remove
-        default: "Create"
-      server_id:
-        type: string
-        required: true
-        description: SQL Server Resource ID
-      subscription:
-        type: string
-        required: true
-        description: Please enter your subscription Name
-      location:
-        type: choice
-        description: Pick the Location
-        options:
-          - eastus2
-          - centralus
-      environment:
-        type: choice
-        description: Choose the environment
-        options:
-          - dev
-          - qa
-          - UAT
-          - Prod
-      purpose:
-        type: string
-        description: Database purpose
-        required: true
-      db_names:
-        type: string
-        required: true
-        description: Database names list (comma-separated)
-      skuname:
-        type: choice
-        description: Database SKU
-        options:
-          - S0
-          - P2
-          - Basic
-          - ElasticPool
-          - GP_S_Gen5_2
-      collation:
-        type: string
-        required: false
-        default: "SQL_Latin1_General_CP1_CI_AS"
-      zoneredundancy:
-        type: string
-        required: false
-        default: "false"
+      inputs:
+        requesttype:
+          type: choice
+          required: true
+          description: Request Type
+          options:
+              - Create
+              - Remove
+          default: "Create"
+        primary_server_id:
+          type: string
+          required: true
+          description: Primary SQL Server Resource ID
+        secondary_server_id:
+          type: string
+          required: true
+          description: Secondary SQL Server Resource ID
+        database_ids:
+          type: string
+          required: true
+          description: Database IDs (comma-separated list)
+        subscription:
+          type: string
+          required: true
+          description: Please enter your subcription Name
+        location:
+          type: choice
+          description: Pick the Location
+          options:
+            - eastus2
+            - centralus
+        secondary_location:
+          type: choice
+          description: Pick the Location for secondary
+          options:
+            - eastus2
+            - centralus
+          default:
+              "centralus"
+        environment:
+          type: choice
+          description: choose the environment
+          options:
+             - dev
+             - qa 
+             - UAT
+             - Prod
+        purpose:
+          type: string
+          description: Failover Group purpose
+          required: true
 
 jobs:
-  sql-database_create:
-    if: github.event.inputs.requesttype == 'Create'
-    name: 'Deploying - MSSQL Database'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+  sql-failover_create:
+    if: (github.event.inputs.requestType == 'Create')
+    name: 'Deploying - MSSQL Failover Group'
+    uses: ./.github/workflows/Createmssqlfailover.yml
+    secrets: 
+      ARM_CLIENT_ID: ${{secrets.AZURE_CLIENT_ID}}
+      ARM_CLIENT_SECRET: ${{secrets.AZURE_CLIENT_SECRET}}
+      ARM_SUBSCRIPTION_ID: ${{secrets.AZURE_SUBSCRIPTION_ID}}
+      ARM_TENANT_ID: ${{secrets.AZURE_TENANT_ID}}
+    with:
+      name: 'mssql-failover'
+      primary_server_id: '${{inputs.primary_server_id}}'
+      secondary_server_id: '${{inputs.secondary_server_id}}'
+      database_ids: '${{inputs.database_ids}}'
+      location: '${{inputs.location}}'
+      secondary_location: '${{inputs.secondary_location}}'
+      environment: '${{inputs.environment}}'
+      purpose: '${{inputs.purpose}}'
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: latest
-
-      - name: Terraform Init
-        run: terraform init
-
-      - name: Terraform Apply
-        run: terraform apply -auto-approve
-        env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-
-  sql-database_remove:
-    if: github.event.inputs.requesttype == 'Remove'
-    name: 'Removing - MSSQL Database'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: latest
-
-      - name: Terraform Destroy
-        run: terraform destroy -auto-approve
-        env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  sql-failover_remove:
+    if: (github.event.inputs.requestType == 'Remove')
+    name: 'Removing - MSSQL Failover Group'
+    uses: ./.github/workflows/Createmssqlfailover.yml
+    secrets: 
+      ARM_CLIENT_ID: ${{secrets.AZURE_CLIENT_ID}}
+      ARM_CLIENT_SECRET: ${{secrets.AZURE_CLIENT_SECRET}}
+      ARM_SUBSCRIPTION_ID: ${{secrets.AZURE_SUBSCRIPTION_ID}}
+      ARM_TENANT_ID: ${{secrets.AZURE_TENANT_ID}}
+    with:
+      name: 'mssql-failover'
+      primary_server_id: '${{inputs.primary_server_id}}'
+      secondary_server_id: '${{inputs.secondary_server_id}}'
+      database_ids: '${{inputs.database_ids}}'
+      location: '${{inputs.location}}'
+      secondary_location: '${{inputs.secondary_location}}'
+      environment: '${{inputs.environment}}'
+      purpose: '${{inputs.purpose}}'
