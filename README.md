@@ -20,3 +20,28 @@ https://www.amazon.com/Updated-Version-Vertical-OMOTON-Adjustable/dp/B078W3QSZY/
 AKINTADEK@essilorluxottica.id
 
 
+OK here are the list of apps that I found the OPENSSL issue
+ 
+ 
+us-central1-docker.pkg.dev/ariba-cre-infra-aw/docker-prod/content-management/service:v-598a102-46        io.containerd.runc.v2
+ 
+us-central1-docker.pkg.dev/ariba-cre-infra-aw/docker-prod/ariba-dn-document-manager/documentmanager-test:v-7b181af-316 
+us-central1-docker.pkg.dev/ariba-cre-infra-aw/docker-prod/ariba-dn-document-manager/document-manager:v-7b181af-316
+ 
+us-central1-docker.pkg.dev/ariba-cre-infra-aw/docker-prod/ariba-catalog-service/service:v-f4fd044-44 
+ 
+So we need to create three tickets for each of these
+ 
+This is one ticket that I created 
+https://product-jira.ariba.com/browse/CBLT-32986
+ 
+
+/host/var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots/827/fs/lib/libcrypto.so.3
+ 
+and not 
+ 
+/var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots/238/fs/usr/bin/openssl 
+
+
+
+
