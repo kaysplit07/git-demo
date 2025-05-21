@@ -1,29 +1,21 @@
-Title: DevOps Engineer
+Design, build, and maintain scalable, secure, and highly available infrastructure in cloud environments (AWS, Azure, GCP).
 
-Job Description:
-XYZ will be responsible for:
+Develop, maintain, and optimize CI/CD pipelines to enable continuous integration, testing, and deployment.
 
-Analyzing business requirements and translating them into scalable, automated deployment and infrastructure solutions, particularly within the Billing & Payment domain.
+Implement Infrastructure as Code (IaC) using tools like Terraform, CloudFormation, or Ansible to provision and manage resources.
 
-Participating actively in Scrum ceremonies, including sprint planning, daily stand-ups, and retrospectives to ensure alignment across teams.
+Automate configuration management, application deployments, and system monitoring.
 
-Identifying, tracking, and mitigating risks and impediments related to build, deployment, and infrastructure stability.
+Collaborate with development, QA, and operations teams to ensure smooth and reliable software releases.
 
-Managing SLAs for issue resolution, change management, and quality assurance related to deployment pipelines and production environments.
+Monitor system performance, troubleshoot issues, and implement fixes proactively.
 
-Designing, implementing, and maintaining CI/CD pipelines and automation scripts for continuous integration, testing, and delivery.
+Manage container orchestration platforms such as Kubernetes or Docker Swarm.
 
-Collaborating with development teams to manage infrastructure as code, configuration management, and version control.
+Implement security best practices, including secrets management, vulnerability scanning, and compliance auditing.
 
-Developing and documenting deployment strategies, test plans for automation, and rollback procedures.
+Maintain documentation of deployment processes, infrastructure configurations, and operational procedures.
 
-Coordinating with onshore and offshore teams to review and validate test scenarios, integration tests, and deployment validations across all testing phases.
+Participate in incident response and root cause analysis to minimize downtime.
 
-Conducting peer reviews and walkthroughs of infrastructure code, automation scripts, and configuration changes to ensure best practices and security compliance.
-
-Driving end-to-end deployment testing—preparing environments, initiating deployments, monitoring execution, and validating results.
-
-Analyzing defects identified during testing and production, coordinating bug fixes, and ensuring timely resolution.
-
-Providing root cause analysis (RCA) for production incidents and UAT defects, with a focus on preventing recurrence through automation and process improvements.
-
+Stay updated on emerging technologies and suggest improvements to existing systems.
