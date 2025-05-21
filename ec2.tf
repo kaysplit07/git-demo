@@ -1,16 +1,29 @@
-Name – XYZ
-Title – developer
-Job Description -  XYZ will be responsible for,
-Analysis of business requirements and documentation concerning to the Billing & Payment area.
-Part of Scrum walkthrough and Scrum meeting
-Tracking and Mitigating the Risks/Impediments
-SLA Management for Issue Management, Change Management and Quality Management
-Responsible for Technical Design/Solution
-Manage Construction of Code using low level and high level designs
-Develops the Project Test Plan and strategy
-Documenting Unit Test Plans and Documents related to code
-Coordinate with their teams and offshore in developing, reviewing the Test Scenarios and Test cases for all the Testing phases in the project, and then review Test Results for the Test Execution.
-Peer Review and Walkthroughs to analyze and suggest code changes
-Drive End-to-End testing - getting environment ready, kick-off, Execution
-Analyze the defects identified during testing and bug fixes
-Share RCA for identified UAT defects
+Title: DevOps Engineer
+
+Job Description:
+XYZ will be responsible for:
+
+Analyzing business requirements and translating them into scalable, automated deployment and infrastructure solutions, particularly within the Billing & Payment domain.
+
+Participating actively in Scrum ceremonies, including sprint planning, daily stand-ups, and retrospectives to ensure alignment across teams.
+
+Identifying, tracking, and mitigating risks and impediments related to build, deployment, and infrastructure stability.
+
+Managing SLAs for issue resolution, change management, and quality assurance related to deployment pipelines and production environments.
+
+Designing, implementing, and maintaining CI/CD pipelines and automation scripts for continuous integration, testing, and delivery.
+
+Collaborating with development teams to manage infrastructure as code, configuration management, and version control.
+
+Developing and documenting deployment strategies, test plans for automation, and rollback procedures.
+
+Coordinating with onshore and offshore teams to review and validate test scenarios, integration tests, and deployment validations across all testing phases.
+
+Conducting peer reviews and walkthroughs of infrastructure code, automation scripts, and configuration changes to ensure best practices and security compliance.
+
+Driving end-to-end deployment testing—preparing environments, initiating deployments, monitoring execution, and validating results.
+
+Analyzing defects identified during testing and production, coordinating bug fixes, and ensuring timely resolution.
+
+Providing root cause analysis (RCA) for production incidents and UAT defects, with a focus on preventing recurrence through automation and process improvements.
+
